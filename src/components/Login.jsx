@@ -21,7 +21,7 @@ function Login() {
     setIsLoading(true);
     
     try {
-      const response = await fetch('http://localhost:3000/auth/login', {
+      const response = await fetch('https://resource-base-backend-production.up.railway.app/auth/login', {
         method: 'POST',
         headers:{
           'Content-Type': 'application/json'
@@ -95,7 +95,7 @@ function Login() {
               
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <a
-                  href="http://localhost:3000/auth/google"
+                  href="https://resource-base-backend-production.up.railway.app/auth/google"
                   className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -105,7 +105,7 @@ function Login() {
                 </a>
                 
                 <a
-                  href="http://localhost:3000/auth/github"
+                  href="https://resource-base-backend-production.up.railway.app/auth/github"
                   className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

@@ -1,6 +1,7 @@
 import React from 'react'
 import { useAuth } from '../context/AuthProvider'
 import { useNavigate } from 'react-router-dom';
+import Header from './layout/Header.jsx'
 
 function Home() {
     const { user, logout } = useAuth();
@@ -13,43 +14,7 @@ function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
-      <header className="bg-white shadow-sm border-t-4 border-blue-500">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center space-x-8">
-            {/* Logo */}
-            <div className="text-2xl font-bold text-blue-600">ResourceBase</div>
-            
-            {/* Search Bar */}
-            <div className="relative w-96">
-              <input 
-                type="text" 
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                placeholder="Search resources..." 
-              />
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
-          
-          {/* User Profile */}
-          <div className="flex items-center space-x-4">
-            <div className="flex flex-col items-end">
-              <span className="font-medium">{user?.username || 'User'}</span>
-              <button 
-                onClick={handleLogout} 
-                className="text-sm text-red-600 hover:text-red-800"
-              >
-                Log out
-              </button>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-              {user?.username?.charAt(0)?.toUpperCase() || 'U'}
-            </div>
-          </div>
-        </div>
-      </header>
-
+      <Header/>
       {/* Main Content */}
       <div className="container mx-auto px-4 py-6">
         <div className="flex">
