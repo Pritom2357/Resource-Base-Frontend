@@ -54,7 +54,7 @@ function AuthProvider({children}){
             const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
 
             if(refreshToken){
-                await fetch('http://localhost:3000/auth/logout', {
+                await fetch('https://resource-base-backend-production.up.railway.app/auth/logout', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -88,7 +88,7 @@ function AuthProvider({children}){
                 return null;
             }
             
-            const response = await fetch('http://localhost:3000/auth/token', {
+            const response = await fetch('https://resource-base-backend-production.up.railway.app/auth/token', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
