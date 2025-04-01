@@ -15,10 +15,8 @@ function Home() {
     <div className="min-h-screen bg-gray-50">
       {/* Navigation Bar */}
       <Header/>
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-6">
+      {/* <div className="container mx-auto px-4 py-6">
         <div className="flex">
-          {/* Left Sidebar */}
           <div className="w-56 pr-6">
             <nav className="space-y-1">
               <a href="#" className="block px-3 py-2 bg-blue-50 text-blue-700 rounded-md font-medium">Home</a>
@@ -47,7 +45,6 @@ function Home() {
             </div>
           </div>
 
-          {/* Main Content */}
           <div className="flex-1">
             <div className="flex justify-between items-center mb-6">
               <h1 className="text-2xl font-bold text-gray-900">Top Resources</h1>
@@ -61,9 +58,7 @@ function Home() {
               </div>
             </div>
 
-            {/* Resource Cards */}
             <div className="space-y-4">
-              {/* Resource Card */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex">
                 <div className="flex flex-col items-center mr-6">
                   <button className="text-gray-400 hover:text-blue-500">
@@ -114,7 +109,6 @@ function Home() {
                 </div>
               </div>
 
-              {/* Second Resource Card */}
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex">
                 <div className="flex flex-col items-center mr-6">
                   <button className="text-gray-400 hover:text-blue-500">
@@ -166,8 +160,6 @@ function Home() {
               </div>
             </div>
           </div>
-
-          {/* Right Sidebar */}
           <div className="w-80 pl-6">
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h3 className="font-medium text-lg mb-3">Top Contributors</h3>
@@ -227,7 +219,7 @@ function Home() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }
