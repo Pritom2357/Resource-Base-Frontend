@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthProvider';
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'https://resource-base-backend-production.up.railway.app';
 
 export const createApiClient = (refreshTokenCallback) => {
   const getAuthHeaders = () => {
