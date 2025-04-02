@@ -167,7 +167,7 @@ function SearchModal({isOpen, onClose}) {
                         }}
                         >
                         <span>{tag.tag_name}</span>
-                        <span className="ml-1 text-xs text-gray-500">({tag.count})</span>
+                        {/* <span className="ml-1 text-xs text-gray-500">({tag.count})</span> */}
                         </button>
                     ))}
                 </div>

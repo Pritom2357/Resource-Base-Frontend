@@ -1,1 +1,3 @@
-// modify search functionality
+1. modify search functionality
+2. make a page where if user login second time it will ask if the resources he used are helpful or not
+3. need to implement the notification and point system
