@@ -1,3 +1,36 @@
 1. modify search functionality
 2. make a page where if user login second time it will ask if the resources he used are helpful or not
 3. need to implement the notification and point system
+
+
+Header::
+1. About
+2. Users
+3. Leaderboard // later !important
+4.Search // High Priority //OPTIMIZE
+5. scoring system 
+6. Leaderboard
+7. bookmarks // TODO
+8. Profile //TODO//OPTIMIZE
+-> need to add profile picture and implement full profile customization //TODO
+9. edit resources //TODO//OPTIMIZE
+
+sidebar:
+1. Categories: show and add //TODO//OPTIMIZE
+2. Tags: show and add //TODO//OPTIMIZE
+3. Users
+4. bookmarks //TODO
+
+resource card:
+1. voting system //TODO//OPTIMIZE
+2. comments //TODO//OPTIMIZE
+3. bookmarks //TODO//OPTIMIZE
+
+//FIXME fix the styling of the resource card, right not good for engagement.
+
+Footer:
+1. social_links add
+2. About Us
+3. Contact Us
+4. Blog
+5.FAQ

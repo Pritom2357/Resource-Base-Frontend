@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import Header from '../components/layout/Header';
-import Sidebar from '../components/layout/Sidebar';
+import Sidebar from '../../layout/Sidebar';
 import { Link } from 'react-router-dom';
-import Footer from '../components/layout/Footer';
 
 function Tags() {
     const [tags, setTags] = useState([]);

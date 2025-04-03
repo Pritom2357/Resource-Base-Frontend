@@ -1,11 +1,11 @@
 import React from 'react'
 import { useAuth } from '../context/AuthProvider'
-import Layout from '../components/layout/Layout';
+import Layout from '../layout/Layout';
 import { Navigate } from 'react-router-dom';
-import ResourceEditor from '../components/Resources/editor/ResourceEditor';
-import ErrorBoundary from './ErrorBoundary';
-import Header from '../components/layout/Header';
-import Footer from '../components/layout/Footer';
+import ResourceEditor from './ResourceEditor';
+import ErrorBoundary from '../pages/ErrorBoundary';
+import Header from '../layout/Header';
+import Footer from '../layout/Footer';
 
 function CreateResourcePage() {
     const {user, loading} = useAuth();
@@ -27,9 +27,11 @@ function CreateResourcePage() {
     }
   return (
      <>
+        <Header/>
         <div className='container mx-auto px-4 py-8 max-w-4xl'>
             <ResourceEditor/>
         </div>
+        <Footer/>
     </>
   )
 }

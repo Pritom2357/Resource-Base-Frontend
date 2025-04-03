@@ -17,7 +17,6 @@ export const createApiClient = (refreshTokenCallback) => {
         
       const newToken = await refreshTokenCallback();
       if (newToken) {
-        // Retry the original request with the new token
         const originalRequest = response.url;
         const options = {
           ...response.clone().json(),
@@ -30,7 +29,6 @@ export const createApiClient = (refreshTokenCallback) => {
       }
     }
     
-    // If we get here, the refresh failed or wasn't a 401 error
     const error = await response.json();
     throw new Error(error.error || 'API request failed');
   };

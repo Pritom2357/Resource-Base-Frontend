@@ -4,10 +4,12 @@ import SimilarityChecker from './SimilarityChecker';
 import CategorySelect from './CategorySelect';
 import ResourceItemList from './ResourceItemList';
 import TagInput from './TagInput';
+import { useAuth } from '../context/AuthProvider';
 
 function ResourceEditor({initialData = null}) {
-    console.log("Resource Editor mounting");
+    // console.log("Resource Editor mounting");
     
+    const {refreshAccessToken} = useAuth();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -73,18 +75,36 @@ function ResourceEditor({initialData = null}) {
         setError(null);
 
         try {
-            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            let token = await refreshAccessToken();
+
+            if(!token){
+                token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            }
+
+            if(!token){
+                throw new Error("Authenticatoin required. Please log in");
+            }
 
             console.log(token);
             
-
             const postData = {
                 postTitle: title,
                 postDescription: description,
                 category,
-                resources: resources.filter(res => res.title.trim() && res.url.trim()),
+                resources: resources
+                    .filter(res => res.title.trim() && res.url.trim())
+                    .map(res => ({
+                        title: res.title,
+                        url: res.url,
+                        description: res.description,
+                        thumbnail_url: res.thumbnail_url || '',
+                        favicon_url: res.favicon_url || '',
+                        site_name: res.site_name || ''
+                    })),
                 tags
             };
+
+            console.log("Submitting resource data:", postData); 
 
             const response = await fetch('https://resource-base-backend-production.up.railway.app/api/resources', {
                 method: initialData ? 'PUT' : 'POST',
