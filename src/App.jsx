@@ -10,6 +10,8 @@ import Tags from './components/pages/home/Tags'
 import Layout from './components/layout/Layout'
 import ResourceDetailPage from './components/pages/resources/ResourceDetailPage'
 import CreateResourcePage from './components/resources/CreateResourcePage'
+import UserProfilePage from './components/pages/home/UserProfilePage'
+import EditProfile from './components/pages/home/EditProfile'
 
 
 function App() {
@@ -28,10 +30,13 @@ function App() {
               <Route path='/' element={<Home/>}/>
               <Route path='/tags' element={<Tags/>}/>
               <Route path='/resources/:id' element={<ResourceDetailPage/>}/>
+              <Route path='/user/:username' element = {<UserProfilePage/>}/>
+              <Route path='/profile' element = {<UserProfilePage/>}/>
             </Route>
 
             <Route element={<ProtectedRoute />}>
               <Route path='/create-resource' element={<CreateResourcePage />} />
+              <Route path='/profile/edit' element={<EditProfile/>}/>
               {/* <Route path='/edit-resource/:id' element={<EditResourcePage />} /> */}
               {/* Add any other routes that require authentication */}
             </Route>

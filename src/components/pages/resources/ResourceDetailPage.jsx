@@ -36,7 +36,33 @@ function ResourceDetailPage() {
 
                 const data = await response.json();
                 setResource(data);
-                console.log(data);
+
+                const viewedResourcesKey = 'viewed_resources';
+                const viewedResources = JSON.parse(sessionStorage.getItem(viewedResourcesKey) || '{}');
+
+                if (!viewedResources[id]) {
+                    try {
+                        const token = isAuthenticated ? 
+                        (localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')): null;
+
+                        const headers = {
+                            'Content-Type': 'application/json'
+                        }
+
+                        if(token){
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
+                        await fetch(`https://resource-base-backend-production.up.railway.app/api/resources/${id}/view`, {
+                            method: 'POST',
+                            headers: headers
+                        });
+                        
+                        viewedResources[id] = Date.now();
+                        sessionStorage.setItem(viewedResourcesKey, JSON.stringify(viewedResources));
+                    } catch (viewError) {
+                        console.error('Error recording view:', viewError);
+                    }
+                }
                 
                 document.title = `${data.post_title} | Resource Base`;
             } catch (error) {
@@ -69,7 +95,7 @@ function ResourceDetailPage() {
                 
                 if (response.ok) {
                     const data = await response.json();
-                    setUserVote(data.voteType); // 'up', 'down', or null
+                    setUserVote(data.voteType); 
                 }
             } catch (error) {
                 console.error('Failed to fetch user vote:', error);
@@ -177,7 +203,6 @@ function ResourceDetailPage() {
     const handleVote = async (voteType) => {
         if (!isAuthenticated) {
             setVoteError('Please sign in to vote on resources.');
-            // Clear error after 3 seconds
             setTimeout(() => setVoteError(null), 3000);
             return;
         }
@@ -213,23 +238,19 @@ function ResourceDetailPage() {
                 throw new Error(errorData.error || "Failed to vote");
             }
 
-            // Calculate the vote difference based on the state transition
+            
             let voteDifference = 0;
             
-            // If user hadn't voted before
             if (userVote === null) {
                 voteDifference = newVoteType === 'up' ? 1 : -1;
             } 
-            // If user is removing their vote
             else if (newVoteType === null) {
                 voteDifference = userVote === 'up' ? -1 : 1;
             } 
-            // If user is changing their vote from up to down or vice versa
             else if (userVote !== newVoteType) {
                 voteDifference = newVoteType === 'up' ? 2 : -2;
             }
 
-            // Update the vote count cleanly
             setUserVote(newVoteType);
             setResource(prev => ({
                 ...prev,
@@ -352,7 +373,7 @@ function ResourceDetailPage() {
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                             </svg>
                                             <span className="text-gray-500">viewed:</span>
-                                            <span className="ml-1">{resource.view_count || 'x'} times</span>
+                                            <span className="ml-1">{resource.view_count || '0'} times</span>
                                         </div>
                                     </div>
                                 </div>

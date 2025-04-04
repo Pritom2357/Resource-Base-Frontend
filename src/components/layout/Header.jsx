@@ -4,12 +4,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import SearchModal from './SearchModal'
 
 function Header() {
-  const { user, logout } = useAuth();
+  const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  // Add a key to force re-render when user photo changes
+  const userPhotoKey = user?.photo || 'no-photo';
   
   // Check if device is mobile
   useEffect(() => {
@@ -36,7 +38,7 @@ function Header() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    // navigate('/login');
   };
   
   const openSearchModal = () => {
@@ -136,18 +138,48 @@ function Header() {
             </Link>
             
             <div className="flex items-center space-x-2 cursor-pointer group">
-              <div className="hidden md:flex flex-col items-end">
-                <span className="font-medium text-sm group-hover:text-blue-600 transition-colors duration-200">{user?.username || 'User'}</span>
-                <button 
-                  onClick={handleLogout} 
-                  className="text-xs text-red-600 hover:text-red-800 transition-colors duration-200"
+              {isAuthenticated && user ? (
+                <>
+                  <div className="hidden md:flex flex-col items-end">
+                    <Link
+                    to='/profile'
+                    >
+                      <span className="font-medium text-sm group-hover:text-blue-600 transition-colors duration-200">{user?.username || 'User'}</span>
+                    </Link>
+                    <button 
+                      onClick={handleLogout} 
+                      className="text-xs text-red-600 hover:text-red-800 transition-colors duration-200"
+                    >
+                      Log out
+                    </button>
+                  </div>
+                  <Link to='/profile'>
+                    <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-110">
+                      {user?.photo ? (
+                        <img 
+                          src={user.photo} 
+                          alt={`${user.username}'s profile`} 
+                          className="w-full h-full object-cover"
+                          key={userPhotoKey} // Add this line
+                        />
+                      ) : (
+                        user?.username?.charAt(0)?.toUpperCase() || 'U'
+                      )}
+                    </div>
+                  </Link>
+                </>
+              ) : (
+                <Link
+                to='/login'
+                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200'
                 >
-                  Log out
-                </button>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-110">
-                {user?.username?.charAt(0)?.toUpperCase() || 'U'}
-              </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm12 0H5v10h10V5z" clipRule="evenodd" />
+                    <path d="M8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+                </svg>
+                Log in
+                </Link>
+              )}
             </div>
           </div>
         </div>
@@ -188,9 +220,20 @@ function Header() {
               </svg>
             </button>
             
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm transition-transform duration-200 hover:scale-110">
-              {user?.username?.charAt(0)?.toUpperCase() || 'U'}
-            </div>
+            <Link to='/profile'>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm transition-transform duration-200 hover:scale-110">
+                {user?.photo ? (
+                  <img 
+                    src={user.photo} 
+                    alt={`${user.username}'s profile`} 
+                    className="w-full h-full object-cover"
+                    key={userPhotoKey} // Add this line
+                  />
+                ) : (
+                  user?.username?.charAt(0)?.toUpperCase() || 'U'
+                )}
+              </div>
+            </Link>
           </div>
         </div>
         
@@ -198,36 +241,29 @@ function Header() {
           <div className="md:hidden bg-white border-t border-gray-200 py-2 px-4 shadow-md animate-slideDown">
             <nav className="flex flex-col space-y-3">
               <Link to="/" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Home</Link>
-              <Link to="/create-resource" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Add Resource</Link>
-              <Link to="/leaderboard" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200 flex items-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                Leaderboard
-              </Link>
-              {/* <hr className="my-1 w-[150px] text-blue-600" /> */}
+              
+              {isAuthenticated ? (
+                // Show these when logged in
+                <>
+                  <Link to="/create-resource" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Add Resource</Link>
+                  <Link to="/bookmarks" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Bookmarks</Link>
+                  <button 
+                    onClick={handleLogout}
+                    className="py-2 text-red-600 hover:text-red-800 text-left transition-colors duration-200"
+                  >
+                    Log out
+                  </button>
+                </>
+              ) : (
+                // Show login when not logged in
+                <Link to="/login" className="py-2 text-blue-600 hover:text-blue-700 transition-colors duration-200 font-medium">
+                  Log in
+                </Link>
+              )}
+              
+              {/* Always visible items */}
+              <Link to="/leaderboard" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Leaderboard</Link>
               <Link to="/tags" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Tags</Link>
-              <Link to="/users" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Users</Link>
-              <Link to="/bookmarks" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Bookmarks</Link>
-              {/* <hr className="my-1 w-[150px] text-blue-600" /> */}
-              <div className="flex justify-between py-2">
-                <span className="font-medium">{user?.username?.charAt(0)?.toUpperCase() || 'User'}</span>
-                  <div className="py-2 flex items-center space-x-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium text-sm text-gray-700">{user?.points || 0} points</span>
-                </div>     
-              </div>
-              
-              
-              <hr className="my-1" />
-              <button 
-                  onClick={handleLogout} 
-                  className="text-red-600 hover:text-red-800 transition-colors duration-200 transform hover:scale-105 active:scale-95"
-                >
-                  Log out
-                </button>
             </nav>
           </div>
         )}

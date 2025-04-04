@@ -102,7 +102,25 @@ function AuthProvider({children}){
             const storage = localStorage.getItem('refreshToken') ? localStorage : sessionStorage;
             storage.setItem('accessToken', data.accessToken);
             
-            return data.accessToken;
+            const newAccessToken = data.accessToken;
+
+            // After successful refresh, fetch the updated user profile
+            const userResponse = await fetch(
+                'https://resource-base-backend-production.up.railway.app/api/users/profile',
+                {
+                    headers: {
+                        'Authorization': `Bearer ${newAccessToken}`
+                    }
+                }
+            );
+            
+            if (userResponse.ok) {
+                const userData = await userResponse.json();
+                setUser(userData); // Update the user data with the latest info
+                return newAccessToken;
+            }
+            
+            return newAccessToken;
         } catch (error) {
             console.error('Error refreshing token:', error);
             logout();

@@ -22,9 +22,7 @@ sidebar:
 4. bookmarks //TODO
 
 resource card:
-1. voting system //TODO//OPTIMIZE
-2. comments //TODO//OPTIMIZE
-3. bookmarks //TODO//OPTIMIZE
+3. bookmarks //TODO//OPTIMIZE -> need to show the list
 
 //FIXME fix the styling of the resource card, right not good for engagement.
 
