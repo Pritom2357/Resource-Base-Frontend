@@ -14,15 +14,21 @@ function Home() {
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('vote_count');
   
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalResources, setTotalResources] = useState(0);
+  const resourcesPerPage = 6; // Adjust as needed
+  
   useEffect(() => {
     fetchResources();
-  }, [sortBy]);
+  }, [sortBy, currentPage]);
   
   const fetchResources = async () => {
     try {
       setIsLoading(true);
       const response = await fetch(
-        `https://resource-base-backend-production.up.railway.app/api/resources?sortBy=${sortBy}&limit=5`
+        `https://resource-base-backend-production.up.railway.app/api/resources?sortBy=${sortBy}&limit=${resourcesPerPage}&offset=${(currentPage - 1) * resourcesPerPage}`
       );
       
       if (!response.ok) {
@@ -30,7 +36,23 @@ function Home() {
       }
       
       const data = await response.json();
-      setResources(data);
+      
+      console.log('API response:', data);
+      console.log('Has pagination info?', Boolean(data.resources && data.pagination));
+      console.log('Total pages:', totalPages);
+      
+      // If the API returns pagination metadata
+      if (data.resources && data.pagination) {
+        setResources(data.resources);
+        setTotalPages(data.pagination.totalPages);
+        setTotalResources(data.pagination.totalCount);
+      } else {
+        // Fallback if the API doesn't return pagination metadata
+        setResources(data);
+        // Estimate total pages based on returned items
+        // This is just a fallback and might not be accurate
+        setTotalPages(Math.max(1, Math.ceil(data.length / resourcesPerPage)));
+      }
     } catch (err) {
       console.error('Error fetching resources:', err);
       setError(err.message);
@@ -41,11 +63,66 @@ function Home() {
   
   const handleSortChange = (e) => {
     setSortBy(e.target.value);
+    setCurrentPage(1); // Reset to first page when sorting changes
   };
 
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+  
+  // Change page
+  const paginate = (pageNumber) => {
+    if (pageNumber < 1 || pageNumber > totalPages) return;
+    setCurrentPage(pageNumber);
+    // Scroll back to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5;
+    
+    if (totalPages <= maxPagesToShow) {
+      // Show all pages if total pages are less than max to show
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      // Always include first page
+      pageNumbers.push(1);
+      
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Adjust when near edges
+      if (currentPage <= 2) {
+        endPage = 4;
+      } else if (currentPage >= totalPages - 1) {
+        startPage = totalPages - 3;
+      }
+      
+      // Add ellipsis after first page if needed
+      if (startPage > 2) {
+        pageNumbers.push('...');
+      }
+      
+      // Add middle pages
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+      
+      // Add ellipsis before last page if needed
+      if (endPage < totalPages - 1) {
+        pageNumbers.push('...');
+      }
+      
+      // Always include last page
+      pageNumbers.push(totalPages);
+    }
+    
+    return pageNumbers;
   };
 
   return (
@@ -87,6 +164,15 @@ function Home() {
               </div>
             )}
             
+            {/* Resource count indicator */}
+            {!isLoading && !error && resources.length > 0 && (
+              <div className="text-sm text-gray-500 mb-4">
+                Showing resources {((currentPage - 1) * resourcesPerPage) + 1}-
+                {Math.min(currentPage * resourcesPerPage, totalResources || resources.length)} 
+                {totalResources ? `of ${totalResources}` : ''}
+              </div>
+            )}
+            
             {/* Loading state */}
             {isLoading ? (
               <div className="space-y-4">
@@ -111,6 +197,65 @@ function Home() {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+            
+            {/* Pagination */}
+            {!isLoading && resources.length > 0 && totalPages > 1 && (
+              <div className="flex justify-center mt-8">
+                <nav className="flex items-center">
+                  {/* Previous page button */}
+                  <button
+                    onClick={() => paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1 rounded-md mr-2 ${
+                      currentPage === 1
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white text-blue-600 hover:bg-blue-50'
+                    }`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                  
+                  {/* Page number buttons */}
+                  <ul className="flex">
+                    {getPageNumbers().map((number, index) => (
+                      <li key={index} className="mx-1">
+                        {number === '...' ? (
+                          <span className="px-3 py-1">...</span>
+                        ) : (
+                          <button
+                            onClick={() => paginate(number)}
+                            className={`px-3 py-1 rounded-md ${
+                              currentPage === number
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white text-blue-600 hover:bg-blue-50'
+                            }`}
+                          >
+                            {number}
+                          </button>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  {/* Next page button */}
+                  <button
+                    onClick={() => paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1 rounded-md ml-2 ${
+                      currentPage === totalPages
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white text-blue-600 hover:bg-blue-50'
+                    }`}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </button>
+                </nav>
               </div>
             )}
           </div>

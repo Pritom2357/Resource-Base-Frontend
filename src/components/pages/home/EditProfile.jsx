@@ -4,10 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../../layout/Header';
 import Sidebar from '../../layout/Sidebar';
 import Footer from '../../layout/Footer';
+import { useLoading } from '../../context/LoadingContext';
 
 function EditProfile() {
-    const { user, isAuthenticated, refreshAccessToken } = useAuth();
+    const { user, isAuthenticated, refreshAccessToken, updateUserData } = useAuth();
     const navigate = useNavigate();
+    const { showLoading, hideLoading } = useLoading();
 
     const [formData, setFormData] = useState({
         username: '',
@@ -206,6 +208,9 @@ function EditProfile() {
             }
             
             const data = await response.json();
+            if(data.imageUrl){
+                updateUserData({photo: data.imageUrl});
+            }
             return data.imageUrl;
         } catch (error) {
             console.error('Error uploading image:', error);
@@ -216,29 +221,35 @@ function EditProfile() {
         }
     };
 
-    // Option 1: Upload image first, then update profile
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
         setError(null);
         setSuccess(false);
+        
+        showLoading('Updating your profile...'); // Show loading overlay
         
         try {
             let photoUrl = formData.photo;
             
             // If a new file was selected, upload it first
             if (selectedFile) {
+                showLoading('Uploading image...');
                 photoUrl = await uploadImage();
                 if (!photoUrl) {
                     throw new Error('Image upload failed');
                 }
             }
             
-            // Update profile with new image URL
+            showLoading('Saving your changes...');
+            const sanitizedSocialLinks = Array.isArray(formData.social_links) ? formData.social_links.map(link => ({
+                name: link.name,
+                url: link.url
+            })) : [];
+
             const updatedFormData = {
                 ...formData,
                 photo: photoUrl,
-                social_links: Array.isArray(formData.social_links) ? formData.social_links : []
+                social_links: sanitizedSocialLinks
             };
             
             const response = await fetch(
@@ -257,90 +268,22 @@ function EditProfile() {
                 const errorData = await response.json();
                 throw new Error(errorData.error || 'Failed to update profile');
             }
+
+            const updatedUserData = await response.json();
+            
+            updateUserData(updatedUserData)
             
             setSuccess(true);
-            refreshAccessToken(); // Refresh authentication context
-            window.scrollTo(0, 0);
+            
+            // Show success in the overlay
+            showLoading('Profile updated successfully!', 'success');
+            setTimeout(() => {
+                hideLoading();
+                navigate('/profile');
+            }, 1500);
         } catch (error) {
-            console.error('Error updating profile:', error);
+            hideLoading();
             setError(error.message);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    // Option 2: Use combined endpoint to update profile with image
-    const handleSubmitWithImage = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setError(null);
-        setSuccess(false);
-        
-        try {
-            if (selectedFile) {
-                // Use the profile-with-image endpoint
-                const formDataWithImage = new FormData();
-                formDataWithImage.append('image', selectedFile);
-                
-                // Add other form fields
-                Object.keys(formData).forEach(key => {
-                    if (key !== 'photo') {
-                        if (key === 'social_links') {
-                            formDataWithImage.append(key, JSON.stringify(formData[key]));
-                        } else {
-                            formDataWithImage.append(key, formData[key]);
-                        }
-                    }
-                });
-                
-                const response = await fetch(
-                    'https://resource-base-backend-production.up.railway.app/api/users/profile-with-image',
-                    {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-                        },
-                        body: formDataWithImage
-                    }
-                );
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to update profile with image');
-                }
-                
-                const data = await response.json();
-                setSuccess(true);
-                refreshAccessToken();
-                window.scrollTo(0, 0);
-            } else {
-                // No image to upload, use regular profile update
-                const response = await fetch(
-                    'https://resource-base-backend-production.up.railway.app/api/users/profile',
-                    {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-                        },
-                        body: JSON.stringify(formData)
-                    }
-                );
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to update profile');
-                }
-                
-                setSuccess(true);
-                refreshAccessToken();
-                window.scrollTo(0, 0);
-            }
-        } catch (error) {
-            console.error('Error updating profile:', error);
-            setError(error.message);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -443,7 +386,7 @@ function EditProfile() {
                                                 value={formData.username}
                                                 onChange={handleChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                                disabled // Username shouldn't be changed
+                                                disabled 
                                             />
                                             <p className="mt-1 text-xs text-gray-500">
                                                 Usernames cannot be changed after registration.

@@ -19,10 +19,18 @@ function UserProfilePage() {
     const [badges, setBadges] = useState([]);
     const [badgeCounts, setBadgeCounts] = useState({ bronze: 0, silver: 0, gold: 0 });
     const [isLoadingBadges, setIsLoadingBadges] = useState(false);
+    const [isOwner, setIsOwner] = useState(false)
 
     const isOwnProfile = isAuthenticated && currentUser && (currentUser.username === username || (!username && currentUser.username));
 
     const profileUsername = username || (currentUser ? currentUser.username : '');
+
+    // useEffect(()=>{
+    //     let token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    //     if(!token){
+    //         token = refreshAccessToken();
+    //     }
+    // }, []);
 
     useEffect(()=>{
         if(!profileUsername) return;
@@ -32,10 +40,27 @@ function UserProfilePage() {
             setError(null);
 
             try {
-                
-                const response = await fetch(
-                    `https://resource-base-backend-production.up.railway.app/api/users/${profileUsername}`
-                );
+
+                const isCurrentUser = isAuthenticated && currentUser && (profileUsername === currentUser.username);
+
+                let response;
+
+                if(isCurrentUser){
+                    setIsOwner(true);
+                    response = await fetch(
+                        'https://resource-base-backend-production.up.railway.app/api/users/profile',
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')}`
+                            }
+                        }
+                    )
+                }else{
+                    setIsOwner(false);
+                    response = await fetch(
+                        `https://resource-base-backend-production.up.railway.app/api/users/${profileUsername}`
+                    );
+                }
 
                 if(!response.ok){
                     throw new Error("Failed to fetch user profile");
@@ -329,7 +354,7 @@ function UserProfilePage() {
                     </div>
                     <div className='mt-6'>
                         {activeTab === 'about' && (
-                            <div className='bg-white rounded-lg shadow-sm p-6'>
+                            <div className='bg-white rounded-lg shadow-sm p-6 border border-blue-300'>
                                 <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-2 border-b border-gray-100">
                                     About {userProfile.fullname || userProfile.username}
                                 </h2>
@@ -337,14 +362,14 @@ function UserProfilePage() {
                                 <div className='grid grid-cols-1 md:grid-cols-2 gap-6 mb-8'>
                                     <div className='space-y-2'>
                                         <div>
-                                            <p className="text-sm font-medium text-gray-500">Full Name</p>
+                                            <p className="text-sm font-medium text-gray-500 pb-1 border-b-2 border-blue-300 inline-block">Full Name</p>
                                             <p className="text-base text-gray-800">
                                                 {userProfile.fullname ? userProfile.fullname : 'N/A'}
                                             </p>
                                         </div>
                                         
-                                        <div className="mt-4">
-                                            <p className="text-sm font-medium text-gray-500">Email</p>
+                                        <div className={`${!isOwner ? 'hidden' : ''} mt-4`}>
+                                            <p className="text-sm font-medium text-gray-500 pb-1 border-b-2 border-blue-300 inline-block">Email</p>
                                             <p className="text-base text-gray-800">
                                                 {userProfile.email || 'N/A'}
                                             </p>
@@ -353,21 +378,21 @@ function UserProfilePage() {
                                     
                                     <div className='space-y-2'>
                                         <div>
-                                            <p className="text-sm font-medium text-gray-500">Username</p>
+                                            <p className="text-sm font-medium text-gray-500 pb-1 border-b-2 border-blue-300 inline-block">Username</p>
                                             <p className="text-base text-gray-800">@{userProfile.username || 'N/A'}</p>
                                         </div>
                                         
                                         <div className="mt-4">
-                                            <p className="text-sm font-medium text-gray-500">Location</p>
+                                            <p className="text-sm font-medium text-gray-500 pb-1 border-b-2 border-blue-300 inline-block">Location</p>
                                             <p className="text-base text-gray-800">
                                                 {userProfile.location || 'N/A'}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div className="mb-8">
-                                    <p className="text-sm font-medium text-gray-500 mb-2">About Me</p>
+                                    <p className="text-sm font-medium text-gray-500 pb-1 border-b-2 border-blue-300 inline-block mb-2">About Me</p>
                                     <div className="bg-gray-50 p-4 rounded-md text-gray-700">
                                         {userProfile.description ? (
                                             <p>{userProfile.description}</p>
@@ -376,9 +401,9 @@ function UserProfilePage() {
                                         )}
                                     </div>
                                 </div>
-                                
+
                                 <div>
-                                    <p className="text-sm font-medium text-gray-500 mb-3">Social Media</p>
+                                    <p className="text-sm font-medium text-gray-500 pb-1 border-b-2 border-blue-300 inline-block mb-3">Social Media</p>
                                     <div className='flex flex-wrap gap-3'>
                                         {userProfile.social_links && userProfile.social_links.length > 0 ? (
                                             userProfile.social_links.map((link, index) => (

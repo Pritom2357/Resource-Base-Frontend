@@ -37,7 +37,7 @@ function AuthProvider({children}){
         checkAuth();
     }, []);
 
-    const login = (userData, tokens, remember=false)=>{
+    const login = async (userData, tokens, remember=false)=>{
         const storage = remember ? localStorage : sessionStorage;
 
         storage.setItem('accessToken', tokens.accessToken);
@@ -46,6 +46,29 @@ function AuthProvider({children}){
 
         setIsAuthenticated(true);
         setUser(userData);
+
+        try {
+            const response = await fetch(
+                'https://resource-base-backend-production.up.railway.app/api/users/profile',
+                {
+                    headers: {
+                        'Authorization': `Bearer ${tokens.accessToken}`
+                    }
+                }
+            );
+            
+            if (response.ok) {
+                const fullUserData = await response.json();
+                const sanitizedUser = {
+                    ...userData,  // Use userData from function parameter instead of user state
+                    photo: fullUserData.photo,
+                }
+                storage.setItem('user', JSON.stringify(sanitizedUser));
+                setUser(sanitizedUser);
+            }
+        } catch (error) {
+            console.error("Error fetching full user profile:", error);
+        }
     };
 
     const logout = async ()=> {
@@ -128,6 +151,22 @@ function AuthProvider({children}){
         }
     };
 
+    const updateUserData = (updatedUserData)=>{
+        const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
+
+        setUser(prevUser => ({
+            ...prevUser,
+            ...updatedUserData
+        }));
+
+        const userStr = storage.getItem('user');
+        if(userStr){
+            const currentUser = JSON.parse(userStr);
+            const updatedUser = {...currentUser, ...updatedUserData};
+            storage.setItem('user', JSON.stringify(updatedUser));
+        }
+    }
+
     return (
         <AuthContext.Provider
         value={{
@@ -136,7 +175,8 @@ function AuthProvider({children}){
             loading,
             login,
             logout,
-            refreshAccessToken
+            refreshAccessToken,
+            updateUserData
         }}
         >
             {children}

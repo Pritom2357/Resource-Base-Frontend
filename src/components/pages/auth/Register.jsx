@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
+import { useLoading } from '../../context/LoadingContext';
 
 function Register() {
 
     const navigate = useNavigate();
+    const { showLoading, hideLoading } = useLoading();
 
     const [username, setUsername] = useState('');
     const [email, setEmail] = useState('');
@@ -25,24 +27,16 @@ function Register() {
 
     const handleSubmit = async (e)=>{
         e.preventDefault();
+        setError('');
+        showLoading('Creating your account...');
 
         if(password !== confirmPassword){
             setError("Passwords do not match");
+            hideLoading();
             return;
         }
 
-        // const formdata = new FormData();
-        
-        // formdata.append('username', username);
-        // formdata.append('email', email);
-        // formdata.append('password', password);
-
-        // for(let [key, value] of formdata.entries()){
-        //     console.log(`${key}: ${value}`);
-        // }
-
         setIsLoading(true);
-        setError('');
 
         try {
           const response = await fetch('https://resource-base-backend-production.up.railway.app/auth/register', {
@@ -64,8 +58,8 @@ function Register() {
           }
 
           setIsSuccess(true);
+          showLoading('Account created successfully! Redirecting...');
 
-          // setError('');
           setUsername('');
           setEmail('');
           setPassword('');
@@ -74,11 +68,11 @@ function Register() {
 
           setTimeout(()=>{
             navigate('/login');
+            hideLoading();
           }, 2000);
 
-          // console.log("Registration completed", data);
-
         } catch (error) {
+          hideLoading();
           setError(error.message || "Registration failed");
           console.log("Registration error: ", error);
         }finally{

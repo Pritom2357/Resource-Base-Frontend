@@ -3,13 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import SimilarityChecker from './SimilarityChecker';
 import CategorySelect from './CategorySelect';
 import ResourceItemList from './ResourceItemList';
-import TagInput from './TagInput';
+import TagInput from '../resources/TagInput';
 import { useAuth } from '../context/AuthProvider';
+import { useLoading } from '../context/LoadingContext';
+
 
 function ResourceEditor({initialData = null}) {
     // console.log("Resource Editor mounting");
     
     const {refreshAccessToken} = useAuth();
+    const { showLoading, hideLoading } = useLoading();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -73,6 +76,7 @@ function ResourceEditor({initialData = null}) {
 
         setIsSubmitting(true);
         setError(null);
+        showLoading(initialData ? 'Updating resource...' : 'Creating resource...');
 
         try {
             let token = await refreshAccessToken();
@@ -121,8 +125,10 @@ function ResourceEditor({initialData = null}) {
                 throw new Error(data.error || 'Failed to create resource');
             }
 
+            showLoading('Success! Redirecting to your new resource...');
             navigate(`/resources/${data.postId}`); 
         } catch (error) {
+            hideLoading();
             console.error('Error submitting resource:', error);
             setError(error.message || 'An error occurred while saving your resource');
         } finally {
@@ -199,10 +205,16 @@ function ResourceEditor({initialData = null}) {
                 </div>
                 
                 <div className="mb-6">
-                    <label className="block text-gray-700 font-medium mb-2">
-                        Tags * <span className="text-sm text-gray-500">(max 5)</span>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Tags <span className="text-xs text-gray-500">(up to 5)</span>
                     </label>
-                    <TagInput tags={tags} onChange={setTags} maxTags={5} />
+                    <TagInput 
+                        tags={tags} 
+                        onChange={(newTags) => setTags(newTags)}
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                        Add relevant tags to help others find your resource
+                    </p>
                 </div>
                 
                 <div className="flex justify-end">

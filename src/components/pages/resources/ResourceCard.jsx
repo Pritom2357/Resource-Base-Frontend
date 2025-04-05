@@ -2,14 +2,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 
 function ResourceCard({ resource }) {
+  // console.log(resource);
+  
   return (
     <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
       {/* Card Header with gradient background */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-gray-200 px-4 py-3 flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full">
+          <Link to={`/search?category=${encodeURIComponent(resource.category_id)}`} className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full hover:bg-blue-200">
             {resource.category_name || 'Uncategorized'}
-          </span>
+          </Link>
           <span className="text-gray-500 text-xs">
             {new Date(resource.created_at).toLocaleDateString('en-US', {
               month: 'short',

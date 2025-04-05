@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthProvider';
+import { useLoading } from '../../context/LoadingContext';
+
 
 function Login() {
 
   const navigate = useNavigate();
-  const {login} = useAuth();
+  const { login } = useAuth();
+  const { showLoading, hideLoading } = useLoading();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,16 +17,16 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e)=>{
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     setError('');
-    setIsLoading(true);
-    
+    showLoading('Signing you in...');
+
     try {
       const response = await fetch('https://resource-base-backend-production.up.railway.app/auth/login', {
         method: 'POST',
-        headers:{
+        headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -35,7 +38,8 @@ function Login() {
 
       const data = await response.json();
 
-      if(!response.ok){
+      if (!response.ok) {
+        hideLoading();
         throw new Error(data.error || "Login failed");
       }
 
@@ -46,19 +50,20 @@ function Login() {
         accessToken: data.accessToken,
         refreshToken: data.refreshToken
       }, remember);
-      
+
       setSuccess(true);
+      showLoading('Login successful, redirecting...');
       setTimeout(() => {
         navigate('/');
       }, 1500);
-      
+
     } catch (error) {
+      hideLoading();
       console.log("Login failed", error.message);
       setError(error.message || "Login failed");
-    }finally{
-      setIsLoading(false)
+    } finally {
+      setIsLoading(false);
     }
-
   }
 
   return (
@@ -80,7 +85,7 @@ function Login() {
             <p className="font-medium">Login successful!</p>
             <p className="text-sm">You have successfully logged in.</p>
           </div>
-        ):(
+        ) : (
           <>
             {/* SSO Buttons */}
             <div className="mt-6">
@@ -92,7 +97,7 @@ function Login() {
                   <span className="px-2 bg-white text-gray-500">Sign in with</span>
                 </div>
               </div>
-              
+
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <a
                   href="https://resource-base-backend-production.up.railway.app/auth/google"
@@ -103,7 +108,7 @@ function Login() {
                   </svg>
                   <span className="ml-2">Google</span>
                 </a>
-                
+
                 <a
                   href="https://resource-base-backend-production.up.railway.app/auth/github"
                   className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
@@ -115,7 +120,7 @@ function Login() {
                 </a>
               </div>
             </div>
-            
+
             <div className="mt-6 relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300"></div>
@@ -124,7 +129,7 @@ function Login() {
                 <span className="px-2 bg-white text-gray-500">Or sign in with email</span>
               </div>
             </div>
-            
+
             {/* Existing email/password form */}
             <form className="mt-6 space-y-6" onSubmit={handleSubmit}>
               {error && (
@@ -142,7 +147,7 @@ function Login() {
                     value={email}
                     type="email"
                     autoComplete="email"
-                    onChange={(e)=>setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-base transition-all duration-200"
                     placeholder="Email address"
@@ -156,7 +161,7 @@ function Login() {
                     value={password}
                     type="password"
                     autoComplete="current-password"
-                    onChange={(e)=>setPassword(e.target.value)}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:z-10 text-base transition-all duration-200"
                     placeholder="Password"
@@ -171,7 +176,7 @@ function Login() {
                     name="remember-me"
                     type="checkbox"
                     checked={remember}
-                    onChange={(e)=>setRemember(e.target.checked)}
+                    onChange={(e) => setRemember(e.target.checked)}
                     className="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                   <label htmlFor="remember-me" className="ml-2 block text-base text-gray-900">
@@ -180,9 +185,9 @@ function Login() {
                 </div>
 
                 <div className="text-base">
-                  <a href="#" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                  <Link to="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
                     Forgot password?
-                  </a>
+                  </Link>
                 </div>
               </div>
 
@@ -198,7 +203,7 @@ function Login() {
             </form>
           </>
         )}
-        
+
       </div>
     </div>
   )

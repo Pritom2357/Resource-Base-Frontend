@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
+import { useLoading } from '../context/LoadingContext';
+
 
 function SearchModal({isOpen, onClose}) {
 
@@ -9,6 +11,7 @@ function SearchModal({isOpen, onClose}) {
     const [popularTags, setPopularTags] = useState([]);
     const [isLoadingTags, setIsLoadingTags] = useState(false);
     const searchInputRef = useRef(null);
+    const { showLoading } = useLoading();
     const navigate = useNavigate();
 
     useEffect(()=>{
@@ -83,6 +86,7 @@ function SearchModal({isOpen, onClose}) {
         if(!searchTerm.trim()) return;
 
         setIsLoading(true);
+        showLoading(`Searching for "${searchTerm}"...`);
 
         setTimeout(()=>{
             setIsLoading(false);

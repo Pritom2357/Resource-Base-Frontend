@@ -12,6 +12,9 @@ function Header() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   // Add a key to force re-render when user photo changes
   const userPhotoKey = user?.photo || 'no-photo';
+
+  console.log(user);
+  
   
   // Check if device is mobile
   useEffect(() => {
@@ -140,33 +143,36 @@ function Header() {
             <div className="flex items-center space-x-2 cursor-pointer group">
               {isAuthenticated && user ? (
                 <>
-                  <div className="hidden md:flex flex-col items-end">
-                    <Link
-                    to='/profile'
-                    >
-                      <span className="font-medium text-sm group-hover:text-blue-600 transition-colors duration-200">{user?.username || 'User'}</span>
-                    </Link>
-                    <button 
-                      onClick={handleLogout} 
-                      className="text-xs text-red-600 hover:text-red-800 transition-colors duration-200"
-                    >
-                      Log out
-                    </button>
-                  </div>
-                  <Link to='/profile'>
-                    <div className="w-9 h-9 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-110">
-                      {user?.photo ? (
-                        <img 
-                          src={user.photo} 
-                          alt={`${user.username}'s profile`} 
-                          className="w-full h-full object-cover"
-                          key={userPhotoKey} // Add this line
-                        />
-                      ) : (
-                        user?.username?.charAt(0)?.toUpperCase() || 'U'
-                      )}
+                  <div className="hidden md:flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 group">                    
+                    <div className="flex flex-col text-center">
+                      <Link
+                        to='/profile'
+                        className="font-medium text-base group-hover:text-blue-600 transition-colors duration-200 text-center"
+                      >
+                        {user?.username || 'User'}
+                      </Link>
+                      <button 
+                        onClick={handleLogout} 
+                        className="text-sm text-red-600 hover:text-red-800 transition-colors duration-200 px-1.5 py-0.5 rounded hover:bg-red-50 mt-0.5"
+                      >
+                        Log out
+                      </button>
                     </div>
-                  </Link>
+                    <Link to='/profile'>
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-105 border-2 border-blue-100">
+                        {user?.photo ? (
+                          <img 
+                            src={user.photo} 
+                            alt={`${user.username}'s profile`} 
+                            className="w-full h-full object-cover"
+                            key={userPhotoKey}
+                          />
+                        ) : (
+                          user?.username?.charAt(0)?.toUpperCase() || 'U'
+                        )}
+                      </div>
+                    </Link>
+                  </div>
                 </>
               ) : (
                 <Link
