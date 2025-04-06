@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter as Router, Navigate, Route, Routes } from 'react-router-dom'
 import './App.css'
 import Login from './components/pages/auth/Login'
 import Register from './components/pages/auth/Register'
@@ -19,47 +19,53 @@ import ForgotPassword from './components/pages/home/ForgotPassword'
 import SearchResults from './components/pages/home/SearchResults'
 import Categories from './components/pages/home/Categories'
 import BookmarksPage from './components/pages/home/BookmarksPage'
+import Users from './components/pages/home/Users'
+import Resources from './components/pages/home/Resources'
+import { WebSocketProvider } from './components/context/WebSocketProvider'
+import NotificationsPage from './components/pages/home/NotificationsPage'
 
 function App() {
   
   return (
-    <>
+    <Router>
       <AuthProvider>
         <LoadingProvider>
-          <BrowserRouter>
+          <WebSocketProvider>
             <RouteChangeListener />
             <Routes>
               <Route path='/login' element={<Login/>} />
               <Route path='/register' element={<Register/>} />
               <Route path='/oauth-callback' element={<OAuthCallback/>} />
-              {/* <Route path='/test' element={<div className="p-10 bg-blue-100">Test Route Works!</div>} /> */}
 
               <Route element={<Layout/>}>
-                <Route path='/' element={<Home/>}/>
                 <Route path='/tags' element={<Tags/>}/>
+                <Route path='/' element={<Resources/>}/>
                 <Route path='/resources/:id' element={<ResourceDetailPage/>}/>
                 <Route path='/user/:username' element = {<UserProfilePage/>}/>
                 <Route path='/profile' element = {<UserProfilePage/>}/>
                 <Route path='/forgot-password' element = {<ForgotPassword/>}/>
                 <Route path='/search' element = {<SearchResults/>}/>
                 <Route path='/categories' element = {<Categories/>}/>
+                <Route path='/users' element={<Users/>}/>
               </Route>
 
               <Route element={<ProtectedRoute />}>
+                <Route path='/home' element={<Home/>}/>
                 <Route path='/create-resource' element={<CreateResourcePage />} />
                 <Route path='/profile/edit' element={<EditProfile/>}/>
                 <Route path='/profile/password' element = {<ChangePassword/>}/>
                 <Route path='/bookmarks' element={<BookmarksPage/>}/>
+                <Route path='/notifications' element={<NotificationsPage />} />
                 {/* <Route path='/edit-resource/:id' element={<EditResourcePage />} /> */}
                 {/* Add any other routes that require authentication */}
               </Route>
 
               <Route path='*' element={<Navigate to="/" />} />
             </Routes>
-          </BrowserRouter>
+          </WebSocketProvider>
         </LoadingProvider>
       </AuthProvider>
-    </>
+    </Router>
   )
 }
 

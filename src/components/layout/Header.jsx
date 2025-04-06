@@ -1,22 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthProvider';
 import { useNavigate, Link } from 'react-router-dom';
-import SearchModal from './SearchModal'
+import SearchModal from './SearchModal';
+import { useWebSocket } from '../context/WebSocketProvider';
+import NotificationItem from './NotificationItem';
 
 function Header() {
   const { user, logout, isAuthenticated } = useAuth();
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useWebSocket();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  // Add a key to force re-render when user photo changes
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef(null);
   const userPhotoKey = user?.photo || 'no-photo';
 
   console.log(user);
   
-  
-  // Check if device is mobile
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -27,25 +29,44 @@ function Header() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(()=>{
-    const handleKeyDown = (e)=>{
-      if(e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA'){
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === '/' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
         e.preventDefault();
         setIsSearchModalOpen(true);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return ()=> window.removeEventListener('keydown', handleKeyDown);
-  }, [])
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    }
+    
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleLogout = () => {
     logout();
-    // navigate('/login');
   };
-  
+
   const openSearchModal = () => {
     setIsSearchModalOpen(true);
+  };
+
+  const handleNotificationClick = (notification) => {
+    markAsRead(notification.id);
+    
+    if (notification.resource_id) {
+      navigate(`/resources/${notification.resource_id}`);
+      setShowNotifications(false);
+    }
   };
 
   return (
@@ -66,7 +87,7 @@ function Header() {
                 to="/tags" 
                 className="text-gray-600 hover:bg-blue-50 hover:text-blue-700 px-3 py-1.5 rounded-md transition-colors duration-200"
               >
-                About
+                Tags
               </Link>
               <Link 
                 to="/users" 
@@ -120,15 +141,72 @@ function Header() {
               <span className="font-medium text-sm text-gray-700">{user?.points || 0}</span>
             </Link>
             
-            <button 
-              className="p-1.5 text-gray-600 hover:bg-blue-50 rounded-md relative transition-transform duration-200 hover:scale-110 active:scale-95"
-              title="Notifications"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 transition-transform duration-300 hover:rotate-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              <span className="absolute top-0 right-0 block h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse"></span>
-            </button>
+            <div className="relative" ref={notificationRef}>
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-1.5 text-gray-600 hover:bg-blue-50 rounded-md relative"
+                title="Notifications"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center h-5 w-5 rounded-full bg-red-500 text-white text-xs font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              
+              {showNotifications && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 overflow-hidden border border-gray-200">
+                  <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                    <h3 className="font-medium text-gray-700">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          markAllAsRead();
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800"
+                      >
+                        Mark all as read
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="max-h-96 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500">
+                        No notifications yet
+                      </div>
+                    ) : (
+                      <div>
+                        {notifications.slice(0, 5).map(notification => (
+                          <NotificationItem 
+                            key={notification.id} 
+                            notification={notification}
+                            onClick={handleNotificationClick}
+                          />
+                        ))}
+                        {notifications.length > 5 && (
+                          <div className="p-2 text-center">
+                            <button 
+                              className="text-sm text-blue-600 hover:text-blue-800"
+                              onClick={() => {
+                                navigate('/notifications');
+                                setShowNotifications(false);
+                              }}
+                            >
+                              View all notifications
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             
             <Link 
               to="/bookmarks" 
@@ -141,49 +219,47 @@ function Header() {
             </Link>
             
             <div className="flex items-center space-x-2 cursor-pointer group">
-              {isAuthenticated && user ? (
-                <>
-                  <div className="hidden md:flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 group">                    
-                    <div className="flex flex-col text-center">
-                      <Link
-                        to='/profile'
-                        className="font-medium text-base group-hover:text-blue-600 transition-colors duration-200 text-center"
-                      >
-                        {user?.username || 'User'}
-                      </Link>
-                      <button 
-                        onClick={handleLogout} 
-                        className="text-sm text-red-600 hover:text-red-800 transition-colors duration-200 px-1.5 py-0.5 rounded hover:bg-red-50 mt-0.5"
-                      >
-                        Log out
-                      </button>
-                    </div>
-                    <Link to='/profile'>
-                      <div className="w-11 h-11 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-105 border-2 border-blue-100">
-                        {user?.photo ? (
-                          <img 
-                            src={user.photo} 
-                            alt={`${user.username}'s profile`} 
-                            className="w-full h-full object-cover"
-                            key={userPhotoKey}
-                          />
-                        ) : (
-                          user?.username?.charAt(0)?.toUpperCase() || 'U'
-                        )}
-                      </div>
+              {isAuthenticated ? (
+                <div className="hidden md:flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors duration-200 group">
+                  <div className="flex flex-col text-center">
+                    <Link
+                      to='/profile'
+                      className="font-medium text-base group-hover:text-blue-600 transition-colors duration-200 text-center"
+                    >
+                      {user?.username || 'User'}
                     </Link>
+                    <button 
+                      onClick={handleLogout} 
+                      className="text-sm text-red-600 hover:text-red-800 transition-colors duration-200 px-1.5 py-0.5 rounded hover:bg-red-50 mt-0.5"
+                    >
+                      Log out
+                    </button>
                   </div>
-                </>
+                  <Link to='/profile'>
+                    <div className="w-11 h-11 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm group-hover:shadow-md transition-all duration-200 group-hover:scale-105 border-2 border-blue-100">
+                      {user?.photo ? (
+                        <img 
+                          src={user.photo} 
+                          alt={`${user.username}'s profile`} 
+                          className="w-full h-full object-cover"
+                          key={userPhotoKey}
+                        />
+                      ) : (
+                        user?.username?.charAt(0)?.toUpperCase() || 'U'
+                      )}
+                    </div>
+                  </Link>
+                </div>
               ) : (
                 <Link
-                to='/login'
-                className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200'
+                  to='/login'
+                  className='flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200'
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm12 0H5v10h10V5z" clipRule="evenodd" />
                     <path d="M8.5 10a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
-                </svg>
-                Log in
+                  </svg>
+                  Log in
                 </Link>
               )}
             </div>
@@ -226,50 +302,56 @@ function Header() {
               </svg>
             </button>
             
-            <Link to='/profile'>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm transition-transform duration-200 hover:scale-110">
-                {user?.photo ? (
-                  <img 
-                    src={user.photo} 
-                    alt={`${user.username}'s profile`} 
-                    className="w-full h-full object-cover"
-                    key={userPhotoKey} // Add this line
-                  />
-                ) : (
-                  user?.username?.charAt(0)?.toUpperCase() || 'U'
-                )}
-              </div>
-            </Link>
+            {isAuthenticated ? (
+              <Link to='/profile'>
+                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden bg-blue-100 flex items-center justify-center text-blue-600 font-bold shadow-sm transition-transform duration-200 hover:scale-110">
+                  {user?.photo ? (
+                    <img 
+                      src={user.photo} 
+                      alt={`${user.username}'s profile`} 
+                      className="w-full h-full object-cover"
+                      key={userPhotoKey}
+                    />
+                  ) : (
+                    user?.username?.charAt(0)?.toUpperCase() || 'U'
+                  )}
+                </div>
+              </Link>
+            ) : (
+              <Link to="/login" className="text-xs py-2 text-green-600 hover:text-blue-600 transition-colors duration-200">Login</Link>
+            )}
           </div>
         </div>
         
         {mobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-gray-200 py-2 px-4 shadow-md animate-slideDown">
             <nav className="flex flex-col space-y-3">
-              <Link to="/" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Home</Link>
+              <Link to="/home" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Home</Link>
+              <Link to="/" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Resources</Link>
               
-              {isAuthenticated ? (
-                // Show these when logged in
+              {isAuthenticated && (
                 <>
                   <Link to="/create-resource" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Add Resource</Link>
                   <Link to="/bookmarks" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Bookmarks</Link>
+                </>
+              )}
+              <Link to="/tags" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Tags</Link>
+              <Link to="/categories" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Categories</Link>
+
+                {isAuthenticated ? (
+                  <div className='flex justify-between'>
+                  <div className='text-blue-500'>{user?.username || "User"}</div>
                   <button 
                     onClick={handleLogout}
-                    className="py-2 text-red-600 hover:text-red-800 text-left transition-colors duration-200"
+                    className="py-2 text-red-600 hover:text-red-800 transition-colors duration-200 mr-5"
                   >
                     Log out
                   </button>
-                </>
-              ) : (
-                // Show login when not logged in
-                <Link to="/login" className="py-2 text-blue-600 hover:text-blue-700 transition-colors duration-200 font-medium">
-                  Log in
-                </Link>
-              )}
+                </div>                
+                ):(
+                  <Link to="/login" className="py-2 text-green-600 hover:text-blue-600 transition-colors duration-200">Login</Link>
+                )}
               
-              {/* Always visible items */}
-              <Link to="/leaderboard" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Leaderboard</Link>
-              <Link to="/tags" className="py-2 text-gray-700 hover:text-blue-600 transition-colors duration-200">Tags</Link>
             </nav>
           </div>
         )}

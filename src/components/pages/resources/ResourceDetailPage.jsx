@@ -4,7 +4,6 @@ import Sidebar from '../../layout/Sidebar';
 import { useAuth } from '../../context/AuthProvider';
 import { useLoading } from '../../context/LoadingContext';
 
-// Keep these helper functions outside the component (this is fine)
 const formatCommentDate = (dateString) => {
   try {
     if (dateString && typeof dateString === 'string') {
@@ -45,7 +44,6 @@ const formatFullDate = (date) => {
 
 function ResourceDetailPage() {
     const { id } = useParams();
-    // Move the useState hook inside the function component
     const [comments, setComments] = useState([]);
     const [resource, setResource] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -79,7 +77,7 @@ function ResourceDetailPage() {
 
                 const data = await response.json();
                 setResource(data);
-                // console.log(resource);
+                console.log(data);
                 
 
                 const viewedResourcesKey = 'viewed_resources';
@@ -189,7 +187,7 @@ function ResourceDetailPage() {
 
                 if(response.ok){
                     const data = await response.json();
-                    console.log("Comments data:", data);
+                    // console.log("Comments data:", data);
                     
                     setComments(data);
                 } else {
@@ -788,7 +786,7 @@ function ResourceDetailPage() {
                                                 </div>
                                                 <div className="flex-1">
                                                     <Link
-                                                        to={`/user/${resource.author_id}`}
+                                                        to={`/user/${resource.author_username}`}
                                                         className="text-md font-medium text-blue-600 hover:text-blue-800"
                                                     >
                                                         {resource.author_username}

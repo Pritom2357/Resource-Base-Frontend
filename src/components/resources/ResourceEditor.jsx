@@ -6,7 +6,7 @@ import ResourceItemList from './ResourceItemList';
 import TagInput from '../resources/TagInput';
 import { useAuth } from '../context/AuthProvider';
 import { useLoading } from '../context/LoadingContext';
-
+import TipTapEditor from '../layout/TipTapEditor';
 
 function ResourceEditor({initialData = null}) {
     // console.log("Resource Editor mounting");
@@ -183,14 +183,13 @@ function ResourceEditor({initialData = null}) {
                     <label htmlFor="description" className="block text-gray-700 font-medium mb-2">
                         Description
                     </label>
-                    <textarea
-                        id="description"
-                        value={description}
-                        onChange={(e) => setDescription(e.target.value)}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Provide a general description of this resource collection"
-                        rows="3"
-                    />
+                    <div className="relative">
+                        <TipTapEditor 
+                            value={description} 
+                            onChange={setDescription} 
+                            placeholder="Provide a general description of this resource collection"
+                        />
+                    </div>
                 </div>
                 
                 <div className="mb-6">

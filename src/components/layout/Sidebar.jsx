@@ -51,6 +51,16 @@ function Sidebar() {
             {/* Navigation Links */}
             <nav className="space-y-1">
                 <Link 
+                  to="/home" 
+                  className={`block px-3 py-2 rounded-md ${
+                    isActive('/home') 
+                      ? 'bg-blue-50 text-blue-700 font-medium' 
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link 
                   to="/" 
                   className={`block px-3 py-2 rounded-md ${
                     isActive('/') 
@@ -58,7 +68,7 @@ function Sidebar() {
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                 >
-                  Home
+                  Resources
                 </Link>
                 <Link 
                   to="/categories" 
