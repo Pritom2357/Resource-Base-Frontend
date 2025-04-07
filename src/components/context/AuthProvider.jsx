@@ -3,7 +3,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 
 const AuthContext = createContext();
 
-export const useAuth = ()=>{
+export const useAuth = ()=> {
     const context = useContext(AuthContext);
     if(!context){
         throw new Error("useAuth must be used with the AuthProvider");
@@ -18,9 +18,10 @@ function AuthProvider({children}){
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [lastActivity, setLastActivity] = useState(Date.now());
 
-    useEffect(()=>{
-        const checkAuth = ()=>{
+    useEffect(()=> {
+        const checkAuth = ()=> {
             const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
             const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
 
@@ -37,7 +38,37 @@ function AuthProvider({children}){
         checkAuth();
     }, []);
 
-    const login = async (userData, tokens, remember=false)=>{
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        
+        const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+        
+        const updateLastActivity = () => {
+            setLastActivity(Date.now());
+        };
+        
+        activityEvents.forEach(event => {
+            document.addEventListener(event, updateLastActivity);
+        });
+        
+        const activityCheckInterval = setInterval(() => {
+            const now = Date.now();
+            const inactiveTime = now - lastActivity;
+            
+            if (inactiveTime < 5 * 60 * 1000) {
+                refreshAccessToken();
+            }
+        }, 60 * 1000); 
+        
+        return () => {
+            activityEvents.forEach(event => {
+                document.removeEventListener(event, updateLastActivity);
+            });
+            clearInterval(activityCheckInterval);
+        };
+    }, [isAuthenticated, lastActivity]);
+
+    const login = async (userData, tokens, remember=false)=> {
         const storage = remember ? localStorage : sessionStorage;
 
         storage.setItem('accessToken', tokens.accessToken);
@@ -60,7 +91,7 @@ function AuthProvider({children}){
             if (response.ok) {
                 const fullUserData = await response.json();
                 const sanitizedUser = {
-                    ...userData,  // Use userData from function parameter instead of user state
+                    ...userData, 
                     photo: fullUserData.photo,
                 }
                 storage.setItem('user', JSON.stringify(sanitizedUser));
@@ -127,7 +158,6 @@ function AuthProvider({children}){
             
             const newAccessToken = data.accessToken;
 
-            // After successful refresh, fetch the updated user profile
             const userResponse = await fetch(
                 'https://resource-base-backend-production.up.railway.app/api/users/profile',
                 {
@@ -139,7 +169,7 @@ function AuthProvider({children}){
             
             if (userResponse.ok) {
                 const userData = await userResponse.json();
-                setUser(userData); // Update the user data with the latest info
+                setUser(userData); 
                 return newAccessToken;
             }
             
@@ -151,7 +181,7 @@ function AuthProvider({children}){
         }
     };
 
-    const updateUserData = (updatedUserData)=>{
+    const updateUserData = (updatedUserData)=> {
         const storage = localStorage.getItem('accessToken') ? localStorage : sessionStorage;
 
         setUser(prevUser => ({

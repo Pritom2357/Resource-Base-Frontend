@@ -4,10 +4,12 @@ import { useNavigate, Link } from 'react-router-dom';
 import SearchModal from './SearchModal';
 import { useWebSocket } from '../context/WebSocketProvider';
 import NotificationItem from './NotificationItem';
+import { useLoading } from '../context/LoadingContext';
 
 function Header() {
   const { user, logout, isAuthenticated } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useWebSocket();
+  const { showLoading, hideLoading } = useLoading(); 
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [isMobile, setIsMobile] = useState(false);
@@ -15,7 +17,10 @@ function Header() {
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
+  const mobileNotificationRef = useRef(null);
+  const notificationPanelRef = useRef(null);
   const userPhotoKey = user?.photo || 'no-photo';
+  const [notificationPosition, setNotificationPosition] = useState({ top: 0, right: 0 });
 
   console.log(user);
   
@@ -43,14 +48,20 @@ function Header() {
 
   useEffect(() => {
     function handleClickOutside(event) {
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+      if (showNotifications && 
+          notificationRef.current && 
+          !notificationRef.current.contains(event.target) &&
+          mobileNotificationRef.current && 
+          !mobileNotificationRef.current.contains(event.target) &&
+          notificationPanelRef.current && 
+          !notificationPanelRef.current.contains(event.target)) {
         setShowNotifications(false);
       }
     }
     
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [showNotifications]);
 
   const handleLogout = () => {
     logout();
@@ -60,12 +71,40 @@ function Header() {
     setIsSearchModalOpen(true);
   };
 
-  const handleNotificationClick = (notification) => {
-    markAsRead(notification.id);
+  const handleNotificationClick = (event, isMobile) => {
+    const buttonRect = event.currentTarget.getBoundingClientRect();
     
-    if (notification.resource_id) {
-      navigate(`/resources/${notification.resource_id}`);
+    if (isMobile) {
+      setNotificationPosition({
+        top: buttonRect.bottom + window.scrollY,
+        right: window.innerWidth - buttonRect.right
+      });
+    } else {
+      setNotificationPosition({
+        top: buttonRect.bottom + window.scrollY,
+        right: window.innerWidth - buttonRect.right
+      });
+    }
+    
+    setShowNotifications(!showNotifications);
+  };
+
+  const handleNotificationItemClick = async (notification) => {
+    try {
+      showLoading(`Wait, going there...`); 
+      
+      await markAsRead(notification.id);
+      
       setShowNotifications(false);
+      
+      if (notification.resource_id) {
+        navigate(`/resources/${notification.resource_id}`);
+      } else {
+        hideLoading(); 
+      }
+    } catch (error) {
+      hideLoading(); 
+      console.error("Error handling notification click:", error);
     }
   };
 
@@ -143,7 +182,7 @@ function Header() {
             
             <div className="relative" ref={notificationRef}>
               <button 
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={(e) => handleNotificationClick(e, false)}
                 className="p-1.5 text-gray-600 hover:bg-blue-50 rounded-md relative"
                 title="Notifications"
               >
@@ -156,56 +195,6 @@ function Header() {
                   </span>
                 )}
               </button>
-              
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl z-50 overflow-hidden border border-gray-200">
-                  <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                    <h3 className="font-medium text-gray-700">Notifications</h3>
-                    {unreadCount > 0 && (
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAllAsRead();
-                        }}
-                        className="text-xs text-blue-600 hover:text-blue-800"
-                      >
-                        Mark all as read
-                      </button>
-                    )}
-                  </div>
-                  
-                  <div className="max-h-96 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500">
-                        No notifications yet
-                      </div>
-                    ) : (
-                      <div>
-                        {notifications.slice(0, 5).map(notification => (
-                          <NotificationItem 
-                            key={notification.id} 
-                            notification={notification}
-                            onClick={handleNotificationClick}
-                          />
-                        ))}
-                        {notifications.length > 5 && (
-                          <div className="p-2 text-center">
-                            <button 
-                              className="text-sm text-blue-600 hover:text-blue-800"
-                              onClick={() => {
-                                navigate('/notifications');
-                                setShowNotifications(false);
-                              }}
-                            >
-                              View all notifications
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
             
             <Link 
@@ -283,13 +272,19 @@ function Header() {
           
           <div className="flex items-center space-x-2 sm:space-x-3">
             <button 
+              ref={mobileNotificationRef}  
+              onClick={(e) => handleNotificationClick(e, true)}
               className="p-1 sm:p-1.5 text-gray-600 hover:bg-blue-50 rounded-md relative transition-transform duration-200 hover:scale-110 active:scale-95"
               title="Notifications"
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
-              <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex items-center justify-center h-4 w-4 rounded-full bg-red-500 text-white text-xs font-bold">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </button>
             
             <button 
@@ -357,6 +352,66 @@ function Header() {
         )}
       </div>
     </header>
+    
+    {showNotifications && (
+      <div 
+        ref={notificationPanelRef}
+        className="fixed z-50 bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200 max-w-[calc(100vw-16px)]" 
+        style={{ 
+          width: '320px', 
+          maxWidth: 'calc(100vw - 16px)',
+          top: notificationPosition.top,
+          right: notificationPosition.right
+        }}
+      >
+        <div className="p-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+          <h3 className="font-medium text-gray-700">Notifications</h3>
+          {unreadCount > 0 && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                markAllAsRead();
+              }}
+              className="text-xs text-blue-600 hover:text-blue-800"
+            >
+              Mark all as read
+            </button>
+          )}
+        </div>
+        
+        <div className="max-h-96 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              No notifications yet
+            </div>
+          ) : (
+            <div>
+              {notifications.slice(0, 5).map(notification => (
+                <NotificationItem 
+                  key={notification.id} 
+                  notification={notification}
+                  onClick={handleNotificationItemClick}
+                />
+              ))}
+              {notifications.length > 5 && (
+                <div className="p-2 text-center">
+                  <button 
+                    className="text-sm text-blue-600 hover:text-blue-800"
+                    onClick={() => {
+                      navigate('/notifications');
+                      setShowNotifications(false);
+                    }}
+                  >
+                    View all notifications
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    )}
+    
     <SearchModal
     isOpen={isSearchModalOpen}
     onClose={()=>setIsSearchModalOpen(false)}

@@ -32,9 +32,7 @@ function ResourceCard({ resource }) {
         </Link>
         
         {resource.post_description && (
-          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-            {resource.post_description}
-          </p>
+          <div className="text-gray-600 text-sm mb-4 line-clamp-2" dangerouslySetInnerHTML={{__html: resource.post_description}}/>
         )}
         
         {/* Resource Stats */}
