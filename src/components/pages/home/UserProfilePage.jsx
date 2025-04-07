@@ -435,9 +435,7 @@ function UserProfilePage() {
                                                         {resource.post_title}
                                                     </Link>
                                                     
-                                                    <p className="text-gray-600 mt-1 line-clamp-2">
-                                                        {resource.post_description || 'No description provided'}
-                                                    </p>
+                                                    <div className="text-gray-600 mt-1 line-clamp-2" dangerouslySetInnerHTML={{__html: resource.post_description}}/>
                                                     
                                                     <div className="flex items-center mt-3 text-sm text-gray-500 space-x-4">
                                                         <div className="flex items-center">

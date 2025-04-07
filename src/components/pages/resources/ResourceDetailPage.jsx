@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import Sidebar from '../../layout/Sidebar';
 import { useAuth } from '../../context/AuthProvider';
 import { useLoading } from '../../context/LoadingContext';
+import SimilarResources from '../../layout/SimilarResources';
 
 const formatCommentDate = (dateString) => {
   try {
@@ -95,6 +96,8 @@ function ResourceDetailPage() {
                 }
 
                 const data = await response.json();
+                console.log(data);
+                
                 setResource(data);
                 console.log(data);
                 
@@ -557,24 +560,37 @@ function ResourceDetailPage() {
                                     </div>
                                 </div>
                                 <div className="flex-shrink-0">
+                                  <div className="flex flex-col space-y-2 sm:space-y-0 sm:flex-row sm:space-x-2">
                                     <Link
-                                        to="/create-resource"
-                                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
+                                      to="/create-resource"
+                                      className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors duration-200"
                                     >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            className="h-5 w-5 mr-1"
-                                            viewBox="0 0 20 20"
-                                            fill="currentColor"
-                                        >
-                                            <path
-                                                fillRule="evenodd"
-                                                d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                                                clipRule="evenodd"
-                                            />
-                                        </svg>
-                                        Add Resource
+                                      <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        className="h-5 w-5 mr-1"
+                                        viewBox="0 0 20 20"
+                                        fill="currentColor"
+                                      >
+                                        <path
+                                          fillRule="evenodd"
+                                          d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                                          clipRule="evenodd"
+                                        />
+                                      </svg>
+                                      Add Resource
                                     </Link>
+                                    {isAuthenticated && user && resource && user.id === resource.user_id && (
+                                      <Link
+                                        to={`/resources/edit/${id}`}
+                                        className="inline-flex items-center justify-center px-3 py-2 bg-yellow-50 text-yellow-600 hover:bg-yellow-100 rounded-md transition-colors"
+                                      >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                                        </svg>
+                                        Edit Resource
+                                      </Link>
+                                    )}
+                                  </div>
                                 </div>
                             </div>
                         </div>
@@ -736,7 +752,7 @@ function ResourceDetailPage() {
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                                                     <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
-                                                                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
+                                                                    <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
                                                                 </svg>
                                                                 Copy Link
                                                             </button>
@@ -971,6 +987,7 @@ function ResourceDetailPage() {
                                             </div>
                                         </div>
                                     </div>
+                                    <SimilarResources resourceId={id} tags={resource.tags}/>
                                 </div>
                                 <div className="hidden lg:block border-l border-gray-200 mx-4"></div>
                                 <hr className="md:hidden border-t-2 border-gray-300 rounded-lg" />

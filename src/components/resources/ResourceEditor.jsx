@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import SimilarityChecker from './SimilarityChecker';
 import CategorySelect from './CategorySelect';
@@ -8,8 +8,11 @@ import { useAuth } from '../context/AuthProvider';
 import { useLoading } from '../context/LoadingContext';
 import TipTapEditor from '../layout/TipTapEditor';
 
-function ResourceEditor({initialData = null}) {
+function ResourceEditor({initialData = null, isEdit = false, resourceId = null}) {
     // console.log("Resource Editor mounting");
+
+    console.log("Initial Data: ", initialData);
+    
     
     const {refreshAccessToken} = useAuth();
     const { showLoading, hideLoading } = useLoading();
@@ -25,6 +28,14 @@ function ResourceEditor({initialData = null}) {
     const [category, setCategory] = useState(initialData?.category || '');
     const [resources, setResources] = useState(initialData?.resources || [{title: '', url: '', description: ''}]);
     const [tags, setTags] = useState(initialData?.tags || []);
+
+    useEffect(() => {
+        // This will ensure the description editor only loads after the component is mounted
+        // which improves TipTap initialization performance
+        if (initialData?.description) {
+            setDescription(initialData.description);
+        }
+    }, [initialData?.description]);
 
     const checkSimilarity = async (resourceUrl) => {
         if(!resourceUrl) return;
@@ -108,25 +119,34 @@ function ResourceEditor({initialData = null}) {
                 tags
             };
 
+            // console.log("Postdata: ", postData);
+            
+
             console.log("Submitting resource data:", postData); 
 
-            const response = await fetch('https://resource-base-backend-production.up.railway.app/api/resources', {
-                method: initialData ? 'PUT' : 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(postData)
-            });
+            const response = await fetch(
+                isEdit 
+                    ? `https://resource-base-backend-production.up.railway.app/api/resources/${resourceId}`
+                    : 'https://resource-base-backend-production.up.railway.app/api/resources', 
+                {
+                    method: isEdit ? 'PUT' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(postData)
+                }
+            );
 
             const data = await response.json();
 
             if(!response.ok){
-                throw new Error(data.error || 'Failed to create resource');
+                throw new Error(data.error || 'Failed to save resource');
             }
 
-            showLoading('Success! Redirecting to your new resource...');
-            navigate(`/resources/${data.postId}`); 
+            showLoading('Success! Redirecting to your resource...');
+            const redirectId = isEdit ? resourceId : data.postId;
+            navigate(`/resources/${redirectId}`); 
         } catch (error) {
             hideLoading();
             console.error('Error submitting resource:', error);
@@ -136,8 +156,11 @@ function ResourceEditor({initialData = null}) {
         }
     }
 
+    console.log("resources: ", resources);
+    
+
     return (
-        <div className="bg-white rounded-lg shadow p-6">
+        <div className="bg-white border border-blue-300 rounded-lg shadow p-6">
             <h1 className="text-2xl font-bold text-gray-900 mb-6">
                 {initialData ? 'Edit Resource' : 'Create New Resource'}
             </h1>

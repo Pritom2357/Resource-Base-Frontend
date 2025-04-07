@@ -23,6 +23,57 @@ function Home() {
   const [totalResources, setTotalResources] = useState(0);
   const resourcesPerPage = 6;
 
+  const [userStats, setUserStats] = useState({
+    sharedCount: 0,
+    viewedCount: 0,
+    bookmarkCount: 0,
+    commentCount: 0,
+  });
+
+  useEffect(()=>{
+    if(isAuthenticated && user){
+      fetchUserStats();
+    }
+  }, [isAuthenticated, user]);
+
+  const fetchUserStats = async()=>{
+    try {
+      let token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+
+      if(!token){
+        token = await refreshAccessToken();
+      }
+
+      if(!token){
+        throw new Error("Authentication required");
+      }
+
+      const response = await fetch(
+        'https://resource-base-backend-production.up.railway.app/api/users/stats/weekly', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      if(!response.ok){
+        throw new Error('Failed to fetch user statistics');
+      }
+
+      const data = await response.json();
+
+      setUserStats({
+        sharedCount: data.shared_resources_count || 0,
+        viewedCount: data.viewed_resources_count || 0,
+        bookmarkCount: data.bookmarked_count || 0,
+        commentCount: data.commented_count || 0
+      });
+
+    } catch (error) {
+      console.error("Error fetching user status: ", error);
+    }
+  }
+
   useEffect(() => {
     if (!isAuthenticated) return;
     
@@ -183,8 +234,7 @@ function Home() {
           <div className='flex flex-col md:flex-row'>
             <div className="md:w-64 md:mr-8 mb-6 md:mb-0">
               <Sidebar />
-            </div>
-            
+            </div>            
             <div className="flex-1">
               {hasPreferences === null ? (
                 <div className="flex justify-center items-center py-20">
@@ -206,6 +256,70 @@ function Home() {
                       >
                         Add Resource
                       </Link>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    {/* Resources Shared Card */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center">
+                        <div className="p-3 bg-blue-50 rounded-md mr-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Shared Resources</h3>
+                          <div className="flex items-baseline">
+                            <span className="text-2xl font-bold text-gray-800 mr-2">{userStats.sharedCount || 0}</span>
+                            <span className="text-xs text-gray-500">this week</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Resources Viewed Card */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center">
+                        <div className="p-3 bg-green-50 rounded-md mr-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Viewed Resources</h3>
+                          <div className="flex items-baseline">
+                            <span className="text-2xl font-bold text-gray-800 mr-2">{userStats.viewedCount || 0}</span>
+                            <span className="text-xs text-gray-500">this week</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Engagement Card */}
+                    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                      <div className="flex items-center">
+                        <div className="p-3 bg-amber-50 rounded-md mr-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-600" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-medium text-gray-500">Your Engagement</h3>
+                          <div className="flex items-baseline space-x-2">
+                            <div>
+                              <span className="text-2xl font-bold text-gray-800">{userStats.bookmarkCount || 0}</span>
+                              <span className="text-xs text-gray-500 ml-1">bookmarks</span>
+                            </div>
+                            <span className="text-gray-300">•</span>
+                            <div>
+                              <span className="text-2xl font-bold text-gray-800">{userStats.commentCount || 0}</span>
+                              <span className="text-xs text-gray-500 ml-1">comments</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   

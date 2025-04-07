@@ -23,6 +23,9 @@ import Users from './components/pages/home/Users'
 import Resources from './components/pages/home/Resources'
 import { WebSocketProvider } from './components/context/WebSocketProvider'
 import NotificationsPage from './components/pages/home/NotificationsPage'
+import EditResourcePage from './components/pages/home/EditResourcePage'
+import AboutPage from './components/pages/home/AboutPage'
+import ContactPage from './components/pages/home/ContactPage'
 
 function App() {
   
@@ -47,6 +50,8 @@ function App() {
                 <Route path='/search' element = {<SearchResults/>}/>
                 <Route path='/categories' element = {<Categories/>}/>
                 <Route path='/users' element={<Users/>}/>
+                <Route path='/about-us' element = {<AboutPage/>}/>
+                <Route path='/contact-us' element = {<ContactPage/>}/>
               </Route>
 
               <Route element={<ProtectedRoute />}>
@@ -56,7 +61,7 @@ function App() {
                 <Route path='/profile/password' element = {<ChangePassword/>}/>
                 <Route path='/bookmarks' element={<BookmarksPage/>}/>
                 <Route path='/notifications' element={<NotificationsPage />} />
-                {/* <Route path='/edit-resource/:id' element={<EditResourcePage />} /> */}
+                <Route path='/resources/edit/:id' element={<EditResourcePage />} />
                 {/* Add any other routes that require authentication */}
               </Route>
 
