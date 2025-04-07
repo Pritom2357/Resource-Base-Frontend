@@ -29,7 +29,7 @@ function EditProfile() {
     const [socialLink, setSocialLink] = useState({ name: '', url: '' });
 
     useEffect(() => {
-        console.log("Current formData state:", formData);
+        // console.log("Current formData state:", formData);
         if (formData.social_links === null || formData.social_links === undefined) {
             console.warn("social_links is null or undefined");
         }

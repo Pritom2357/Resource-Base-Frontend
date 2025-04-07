@@ -37,9 +37,9 @@ function Resources() {
       
       const data = await response.json();
       
-      console.log('API response:', data);
-      console.log('Has pagination info?', Boolean(data.resources && data.pagination));
-      console.log('Total pages:', totalPages);
+      // console.log('API response:', data);
+      // console.log('Has pagination info?', Boolean(data.resources && data.pagination));
+      // console.log('Total pages:', totalPages);
       
       if (data.resources && data.pagination) {
         setResources(data.resources);

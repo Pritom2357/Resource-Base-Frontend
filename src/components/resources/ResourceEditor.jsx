@@ -11,7 +11,7 @@ import TipTapEditor from '../layout/TipTapEditor';
 function ResourceEditor({initialData = null, isEdit = false, resourceId = null}) {
     // console.log("Resource Editor mounting");
 
-    console.log("Initial Data: ", initialData);
+    // console.log("Initial Data: ", initialData);
     
     
     const {refreshAccessToken} = useAuth();
@@ -100,7 +100,7 @@ function ResourceEditor({initialData = null, isEdit = false, resourceId = null})
                 throw new Error("Authenticatoin required. Please log in");
             }
 
-            console.log(token);
+            // console.log(token);
             
             const postData = {
                 postTitle: title,
@@ -122,7 +122,7 @@ function ResourceEditor({initialData = null, isEdit = false, resourceId = null})
             // console.log("Postdata: ", postData);
             
 
-            console.log("Submitting resource data:", postData); 
+            // console.log("Submitting resource data:", postData); 
 
             const response = await fetch(
                 isEdit 
@@ -156,7 +156,7 @@ function ResourceEditor({initialData = null, isEdit = false, resourceId = null})
         }
     }
 
-    console.log("resources: ", resources);
+    // console.log("resources: ", resources);
     
 
     return (

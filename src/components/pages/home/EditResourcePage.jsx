@@ -69,7 +69,7 @@ function EditResourcePage() {
                     tags: data.tags || []
                 };
 
-                console.log(formattedData);
+                // console.log(formattedData);
                 
 
                 setResource(formattedData);

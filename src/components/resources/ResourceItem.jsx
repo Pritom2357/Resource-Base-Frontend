@@ -15,7 +15,7 @@ function ResourceItem({resource, onChange, onRemove, showRemove, index}) {
     
     try {
       setIsLoading(true);
-      console.log("Fetching metadata for:", url); // Debug log
+      // console.log("Fetching metadata for:", url); // Debug log
       
       const response = await fetch(
         `https://resource-base-backend-production.up.railway.app/api/resources/extract-metadata?url=${encodeURIComponent(url)}`
@@ -23,7 +23,7 @@ function ResourceItem({resource, onChange, onRemove, showRemove, index}) {
       
       if (response.ok) {
         const data = await response.json();
-        console.log("Metadata received:", data); // Debug log
+        // console.log("Metadata received:", data); // Debug log
         
         // Store the complete metadata object in the resource
         onChange('thumbnail_url', data.metadata.image || '');

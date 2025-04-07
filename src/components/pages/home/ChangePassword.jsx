@@ -38,7 +38,7 @@ function ChangePassword() {
     }, [isAuthenticated, navigate]);
 
     const handleChange = (e)=>{
-        console.log(e.target);
+        // console.log(e.target);
         
         const {name, value} = e.target;
         setFormData(prev => ({

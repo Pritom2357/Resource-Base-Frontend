@@ -96,10 +96,10 @@ function ResourceDetailPage() {
                 }
 
                 const data = await response.json();
-                console.log(data);
+                // console.log(data);
                 
                 setResource(data);
-                console.log(data);
+                // console.log(data);
                 
 
                 const viewedResourcesKey = 'viewed_resources';

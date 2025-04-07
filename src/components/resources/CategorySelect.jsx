@@ -21,7 +21,7 @@ function CategorySelect({value, onChange}) {
             const data = await response.json();
             setCategories(data);
         } catch (error) {
-            console.log("Error fetching categories: ", error);
+            // console.log("Error fetching categories: ", error);
             setError("Failed to load categories. Please try again");
             setCategories([
                 { id: 'frontend', name: 'Frontend Development' },

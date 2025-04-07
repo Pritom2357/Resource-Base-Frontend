@@ -132,7 +132,7 @@ function UserProfilePage() {
           
           if (countsResponse.ok) {
             const countsData = await countsResponse.json();
-            console.log("Badge counts data:", countsData);
+            // console.log("Badge counts data:", countsData);
             setBadgeCounts(countsData);
           }
           
@@ -143,7 +143,7 @@ function UserProfilePage() {
           
           if (badgesResponse.ok) {
             const badgesData = await badgesResponse.json();
-            console.log("Badges data:", badgesData);
+            // console.log("Badges data:", badgesData);
             setBadges(badgesData);
           }
         } catch (error) {
@@ -176,7 +176,7 @@ function UserProfilePage() {
           
           if (response.ok) {
             const result = await response.json();
-            console.log("Badge recalculation result:", result);
+            // console.log("Badge recalculation result:", result);
             
             // Show success message
             alert(`Badges recalculated successfully! Found ${result.resourceCount} resources.`);
@@ -225,8 +225,8 @@ function UserProfilePage() {
         );
       }
       
-    console.log("User Profile Data: ", userProfile);
-    console.log("User Resources Data: ", userResources);
+    // console.log("User Profile Data: ", userProfile);
+    // console.log("User Resources Data: ", userResources);
   return (
     <div className="min-h-screen bg-gray-50">
         <div className='container mx-auto px-4 py-6'>

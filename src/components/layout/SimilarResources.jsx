@@ -17,7 +17,7 @@ function SimilarResources({ resourceId, tags = [] }) {
         setIsLoading(true);
         const tagString = Array.isArray(tags) ? tags.join(',') : tags;
         
-        console.log("Fetching similar resources with tags:", tagString);
+        // console.log("Fetching similar resources with tags:", tagString);
         
         const response = await fetch(
           `https://resource-base-backend-production.up.railway.app/api/resources/similar?resourceId=${resourceId}&tags=${tagString}`
@@ -25,7 +25,7 @@ function SimilarResources({ resourceId, tags = [] }) {
         
         if (response.ok) {
           const data = await response.json();
-          console.log("Similar resources data:", data);
+          // console.log("Similar resources data:", data);
           const filtered = Array.isArray(data) ? data.filter(item => item && item.id !== resourceId) : [];
           setSimilarResources(filtered.slice(0, 3)); 
         } else {

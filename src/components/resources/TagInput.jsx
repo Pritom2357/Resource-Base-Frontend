@@ -211,14 +211,10 @@ function TagInput({tags, onChange, maxTags = 5}) {
         }
     };
 
-    // Update the selectSuggestion function
     const selectSuggestion = (suggestion) => {
-        // Add explicit check for the new tag
         if (suggestion.isNew === true && !popularTags.includes(suggestion.value)) {
-            // Set confirmation dialog directly here
             setConfirmNewTag(suggestion.value);
         } else {
-            // Only for existing tags, bypass the confirmation
             addTag(suggestion.value, false);
         }
     };
@@ -254,7 +250,6 @@ function TagInput({tags, onChange, maxTags = 5}) {
                         onKeyDown={handleKeyDown}
                         onFocus={() => inputValue.trim() && setShowSuggestions(true)}
                         onBlur={(e) => {
-                            // Only hide suggestions if we're not clicking on a suggestion
                             if (!suggestionClickRef.current) {
                                 setTimeout(() => setShowSuggestions(false), 100);
                             }
@@ -279,11 +274,9 @@ function TagInput({tags, onChange, maxTags = 5}) {
                                 key={index}
                                 className={`px-4 py-2 hover:bg-blue-50 cursor-pointer flex justify-between ${suggestion.isNew ? 'border-l-4 border-blue-500' : ''}`}
                                 onMouseDown={(e) => {
-                                    // Prevent the input blur event from firing
                                     e.preventDefault();
                                     suggestionClickRef.current = true;
                                     
-                                    // Process the suggestion click
                                     if (suggestion.isNew === true && !popularTags.includes(suggestion.value)) {
                                         setConfirmNewTag(suggestion.value);
                                     } else {
