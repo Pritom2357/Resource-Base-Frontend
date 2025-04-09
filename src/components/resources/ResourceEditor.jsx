@@ -7,6 +7,7 @@ import TagInput from '../resources/TagInput';
 import { useAuth } from '../context/AuthProvider';
 import { useLoading } from '../context/LoadingContext';
 import TipTapEditor from '../layout/TipTapEditor';
+import { useCache } from '../context/CacheContext';
 
 function ResourceEditor({initialData = null, isEdit = false, resourceId = null}) {
     // console.log("Resource Editor mounting");
@@ -16,6 +17,7 @@ function ResourceEditor({initialData = null, isEdit = false, resourceId = null})
     
     const {refreshAccessToken} = useAuth();
     const { showLoading, hideLoading } = useLoading();
+    const { clearCache } = useCache();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
@@ -30,8 +32,6 @@ function ResourceEditor({initialData = null, isEdit = false, resourceId = null})
     const [tags, setTags] = useState(initialData?.tags || []);
 
     useEffect(() => {
-        // This will ensure the description editor only loads after the component is mounted
-        // which improves TipTap initialization performance
         if (initialData?.description) {
             setDescription(initialData.description);
         }
@@ -59,7 +59,6 @@ function ResourceEditor({initialData = null, isEdit = false, resourceId = null})
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Validation
         if(!title.trim()){
             setError("Title is required");
             return;
@@ -146,6 +145,17 @@ function ResourceEditor({initialData = null, isEdit = false, resourceId = null})
 
             showLoading('Success! Redirecting to your resource...');
             const redirectId = isEdit ? resourceId : data.postId;
+
+            if (isEdit && resourceId) {
+                clearCache(`resource-${resourceId}`);
+                for (let i = 1; i <= 5; i++) {
+                    clearCache(`resources-newest-page${i}`);
+                    clearCache(`resources-vote_count-page${i}`);
+                    clearCache(`resources-bookmarks-page${i}`);
+                }
+                clearCache(`similar-resource-${resourceId}`);
+            }
+
             navigate(`/resources/${redirectId}`); 
         } catch (error) {
             hideLoading();

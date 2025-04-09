@@ -5,11 +5,13 @@ import Header from '../../layout/Header';
 import Sidebar from '../../layout/Sidebar';
 import Footer from '../../layout/Footer';
 import { useLoading } from '../../context/LoadingContext';
+import { useCache } from '../../context/CacheContext';
 
 function EditProfile() {
     const { user, isAuthenticated, refreshAccessToken, updateUserData } = useAuth();
     const navigate = useNavigate();
     const { showLoading, hideLoading } = useLoading();
+    const { clearCache } = useCache();
 
     const [formData, setFormData] = useState({
         username: '',
@@ -38,7 +40,6 @@ function EditProfile() {
         }
     }, [formData]);
 
-    // Load existing profile data
     useEffect(() => {
         if (!isAuthenticated) {
             navigate('/login?redirect=/profile/edit');
@@ -47,7 +48,6 @@ function EditProfile() {
         
         const fetchProfile = async () => {
             try {
-                // Check if token exists
                 const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
                 
                 if (!token) {
@@ -271,11 +271,14 @@ function EditProfile() {
 
             const updatedUserData = await response.json();
             
-            updateUserData(updatedUserData)
+            updateUserData(updatedUserData);
+            
+            const profileCacheKey = `profile-${user.username}`;
+            clearCache(profileCacheKey);
+            clearCache('user-preferences');
             
             setSuccess(true);
             
-            // Show success in the overlay
             showLoading('Profile updated successfully!', 'success');
             setTimeout(() => {
                 hideLoading();
