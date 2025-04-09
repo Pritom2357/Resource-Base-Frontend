@@ -13,6 +13,10 @@ const RouteChangeListener = () => {
     
     return () => clearTimeout(timer);
   }, [location.pathname, hideLoading]);
+
+  useEffect(()=>{
+    window.scrollTo({top: 0, behavior: 'smooth'});
+  }, [location]);
   
   return null;
 };

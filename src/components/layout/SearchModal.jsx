@@ -29,6 +29,13 @@ function SearchModal({isOpen, onClose}) {
     const fetchPopularTags = async()=>{
         setIsLoadingTags(true);
         try {
+            // Add cache check here
+            if(isValidCache('tags')) {
+                setPopularTags(getCachedData('tags'));
+                setIsLoadingTags(false);
+                return;
+            }
+            
             const response = await fetch(
                 'https://resource-base-backend-production.up.railway.app/api/resources/tags/popular'
             );
@@ -36,6 +43,7 @@ function SearchModal({isOpen, onClose}) {
             if(response.ok){
                 const data = await response.json();
                 setPopularTags(data.slice(0, 8));
+                setCachedData('tags', data.slice(0, 8), 15 * 60 * 1000); // 15 minutes
             }else{
                 setPopularTags([
                     { tag_name: 'React', count: 65 },

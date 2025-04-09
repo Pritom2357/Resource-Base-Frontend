@@ -4,6 +4,7 @@ import Sidebar from '../../layout/Sidebar';
 import { useAuth } from '../../context/AuthProvider';
 import { useLoading } from '../../context/LoadingContext';
 import SimilarResources from '../../layout/SimilarResources';
+import { useCache } from '../../context/CacheContext';
 
 const formatCommentDate = (dateString) => {
   try {
@@ -67,8 +68,27 @@ function ResourceDetailPage() {
     const [shareMessage, setShareMessage] = useState('');
     const shareMenuRef = useRef(null);
 
+    const [showFullDescription, setShowFullDescription] = useState(false);
+    const descriptionCharLimit = 300;
+
     const { user, isAuthenticated, refreshAccessToken } = useAuth();
     const { showLoading, hideLoading } = useLoading();
+
+    const {isValidCache, getCachedData, setCachedData, clearCache} = useCache();
+
+    const truncateHTML = (html, limit) => {
+      if (!html) return '';
+      if (html.length <= limit) return html;
+      
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      
+      const textContent = tempDiv.textContent || tempDiv.innerText;
+      
+      if (textContent.length <= limit) return html;
+      
+      return textContent.substring(0, limit).trim() + '...';
+    };
 
     useEffect(()=>{
         const handleClickOutside = (event)=>{
@@ -87,8 +107,31 @@ function ResourceDetailPage() {
 
     useEffect(() => {
         const fetchResource = async () => {
+            if(!id) return;
+
             try {
                 setIsLoading(true);
+
+                const resourceCacheKey = `resource-${id}`;
+
+                if(isValidCache(resourceCacheKey)){
+                    // console.log(`✅ CACHE HIT: ${resourceCacheKey}`);
+                    const cachedResource = getCachedData(resourceCacheKey);
+                    setResource(cachedResource);
+                    
+                    document.title = `${cachedResource.post_title} | Resource Base`;
+                    
+                    recordResourceView(id);
+                    if(isAuthenticated) {
+                        fetchUserSpecificData(id);
+                    }
+                    
+                    setIsLoading(false);
+                    return;
+                } else {
+                    // console.log(`❌ CACHE MISS: ${resourceCacheKey}`);
+                }
+
                 const response = await fetch(`https://resource-base-backend-production.up.railway.app/api/resources/${id}`);
 
                 if (!response.ok) {
@@ -96,41 +139,12 @@ function ResourceDetailPage() {
                 }
 
                 const data = await response.json();
-                // console.log(data);
-                
                 setResource(data);
-                // console.log(data);
-                
-
-                const viewedResourcesKey = 'viewed_resources';
-                const viewedResources = JSON.parse(sessionStorage.getItem(viewedResourcesKey) || '{}');
-
-                if (!viewedResources[id]) {
-                    try {
-                        const token = isAuthenticated
-                            ? localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken')
-                            : null;
-
-                        const headers = {
-                            'Content-Type': 'application/json',
-                        };
-
-                        if (token) {
-                            headers['Authorization'] = `Bearer ${token}`;
-                        }
-                        await fetch(`https://resource-base-backend-production.up.railway.app/api/resources/${id}/view`, {
-                            method: 'POST',
-                            headers: headers,
-                        });
-
-                        viewedResources[id] = Date.now();
-                        sessionStorage.setItem(viewedResourcesKey, JSON.stringify(viewedResources));
-                    } catch (viewError) {
-                        console.error('Error recording view:', viewError);
-                    }
-                }
-
                 document.title = `${data.post_title} | Resource Base`;
+
+                setCachedData(resourceCacheKey, data, 15 * 60 * 1000);
+
+                recordResourceView(id);
             } catch (error) {
                 console.error('Error fetching resource:', error);
                 setError(error.message || 'Failed to load resource');
@@ -139,89 +153,62 @@ function ResourceDetailPage() {
             }
         };
 
-        fetchResource();
-
-        window.scrollTo(0, 0);
-    }, [id]);
-
-    useEffect(() => {
-        const fetchUserVote = async () => {
-            if (!isAuthenticated || !user) return;
-
+        const fetchUserSpecificData = async (resourceId) => {
             try {
                 const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-
                 if (!token) return;
 
-                const response = await fetch(`https://resource-base-backend-production.up.railway.app/api/resources/${id}/user-vote`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
+                const [voteResponse, bookmarkResponse] = await Promise.all([
+                    fetch(`https://resource-base-backend-production.up.railway.app/api/resources/${resourceId}/user-vote`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }),
+                    fetch(`https://resource-base-backend-production.up.railway.app/api/resources/${resourceId}/bookmark-status`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    })
+                ]);
 
-                if (response.ok) {
-                    const data = await response.json();
-                    setUserVote(data.voteType);
+                if (voteResponse.ok) {
+                    const voteData = await voteResponse.json();
+                    setUserVote(voteData.voteType);
                 }
-            } catch (error) {
-                console.error('Failed to fetch user vote:', error);
-            }
-        };
 
-        fetchUserVote();
-    }, [id, isAuthenticated, user]);
-
-    useEffect(() => {
-        const checkBookmarkStatus = async () => {
-            if (!isAuthenticated || !user) return;
-
-            try {
-                const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-
-                if (!token) return;
-
-                const response = await fetch(`https://resource-base-backend-production.up.railway.app/api/resources/${id}/bookmark-status`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    setIsBookmarked(data.isBookmarked);
+                if (bookmarkResponse.ok) {
+                    const bookmarkData = await bookmarkResponse.json();
+                    setIsBookmarked(bookmarkData.isBookmarked);
                 }
-            } catch (error) {
-                console.error('Failed to fetch bookmark status:', error);
-            }
-        };
 
-        checkBookmarkStatus();
-    }, [id, isAuthenticated, user]);
-
-    useEffect(() => {
-        const fetchResourceComments = async () => {
-            if(!isAuthenticated || !user) return;
-            
-            try {
-                const response = await fetch(
-                    `https://resource-base-backend-production.up.railway.app/api/resources/${id}/comments`
+                const commentsResponse = await fetch(
+                    `https://resource-base-backend-production.up.railway.app/api/resources/${resourceId}/comments`
                 );
 
-                if(response.ok){
-                    const data = await response.json();
-                    // console.log("Comments data:", data);
-                    
-                    setComments(data);
-                } else {
-                    console.error('Failed to fetch comments:', response.status);
+                if (commentsResponse.ok) {
+                    const commentsData = await commentsResponse.json();
+                    setComments(commentsData);
                 }
             } catch (error) {
-                console.error('Failed to fetch comments:', error);
+                console.error('Error fetching user-specific data:', error);
             }
-        }
+        };
 
-        fetchResourceComments();
-    }, [id, isAuthenticated, user]);
+        fetchResource();
+        window.scrollTo(0, 0);
+    }, [id, isAuthenticated, isValidCache, getCachedData, setCachedData]);
+
+    const recordResourceView = async (resourceId) => {
+        try {
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            
+            await fetch(`https://resource-base-backend-production.up.railway.app/api/resources/${resourceId}/view`, {
+                method: 'POST',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error recording view:', error);
+        }
+    };
 
     const handleCommentSubmit = async (e) => {
         e.preventDefault();
@@ -283,6 +270,7 @@ function ResourceDetailPage() {
             }));
 
             setCommentText('');
+            clearCache(`resource-${id}`);
             hideLoading();
         } catch (error) {
             hideLoading();
@@ -349,6 +337,7 @@ function ResourceDetailPage() {
                 vote_count: Number(prev.vote_count || 0) + voteDifference,
             }));
 
+            clearCache(`resource-${id}`);
             hideLoading();
         } catch (error) {
             hideLoading();
@@ -398,6 +387,7 @@ function ResourceDetailPage() {
             const result = await response.json();
             setIsBookmarked(result.action === 'added');
 
+            clearCache(`resource-${id}`);
             hideLoading();
         } catch (error) {
             hideLoading();
@@ -408,25 +398,8 @@ function ResourceDetailPage() {
         }
     };
 
-    const handleShare = async () => {
-        const shareUrl = window.location.href;
-        const shareTitle = resource.post_title;
-        const shareText = `Check out this resource: "${resource.post_title}" on ResourceBase`;
-
-        try {
-            if(navigator.share){
-                await navigator.share({
-                    title: shareTitle,
-                    text: shareText,
-                    url: shareUrl
-                });
-                return;
-            }
-
-            setIsShareMenuOpen(!isShareMenuOpen);
-        } catch (error) {
-            console.error('Error sharing resource:', error);
-        }
+    const handleShare = () => {
+        setIsShareMenuOpen(!isShareMenuOpen);
     };
 
     const handleCopyLink = () => {
@@ -442,6 +415,51 @@ function ResourceDetailPage() {
         });
 
         setIsShareMenuOpen(false);
+    };
+
+    const handleSocialShare = async (platform) => {
+        const shareUrl = window.location.href;
+        const shareTitle = resource.post_title;
+        let shareText, platformUrl;
+        
+        switch(platform) {
+            case 'twitter':
+                shareText = `Check out this resource: "${shareTitle}" on ResourceBase\n\n${shareUrl}`;
+                platformUrl = 'https://twitter.com/intent/tweet';
+                break;
+            case 'facebook':
+                shareText = `Check out this resource: "${shareTitle}" on ResourceBase\n\n${shareUrl}`;
+                platformUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl);
+                break;
+            case 'linkedin':
+                shareText = `Check out this resource I found on ResourceBase:\n\n"${shareTitle}"\n\n${shareUrl}`;
+                platformUrl = 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(shareUrl);
+                break;
+            case 'email':
+                shareText = `Subject: Check out this resource: ${shareTitle}\n\nBody: I thought you might be interested in this resource I found on ResourceBase:\n\n${shareTitle}\n\n${shareUrl}`;
+                platformUrl = 'mailto:?subject=' + encodeURIComponent(`Check out this resource: ${shareTitle}`) + 
+                             '&body=' + encodeURIComponent(`I thought you might be interested in this resource I found on ResourceBase:\n\n${shareTitle}\n\n${shareUrl}`);
+                break;
+            default:
+                shareText = `${shareTitle}\n\n${shareUrl}`;
+                platformUrl = '';
+        }
+        
+        try {
+            await navigator.clipboard.writeText(shareText);
+            
+            setShareMessage(`${platform.charAt(0).toUpperCase() + platform.slice(1)} text copied! Opening ${platform}...`);
+            setIsShareMenuOpen(false);
+            
+            setTimeout(() => {
+                setShareMessage('');
+                window.open(platformUrl, '_blank');
+            }, 1500);
+        } catch (error) {
+            console.error(`Failed to copy ${platform} share text:`, error);
+            setShareMessage(`Failed to copy text. Try again.`);
+            setTimeout(() => setShareMessage(''), 3000);
+        }
     };
 
     if (isLoading) {
@@ -599,9 +617,133 @@ function ResourceDetailPage() {
                                 <div className="w-full lg:w-2/3 pr-0 lg:pr-6">
                                     <div className="mb-6">
                                         <h3 className="font-medium text-gray-800 mb-2">Description</h3>
-                                        <div className="text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{__html: resource.post_description || ''}}/>
+                                        <div className="text-gray-700 leading-relaxed">
+                                            {showFullDescription ? (
+                                                <div dangerouslySetInnerHTML={{__html: resource.post_description || ''}} />
+                                            ) : (
+                                                <>
+                                                    <div dangerouslySetInnerHTML={{__html: truncateHTML(resource.post_description, descriptionCharLimit)}} />
+                                                    {resource.post_description && resource.post_description.length > descriptionCharLimit && (
+                                                        <button 
+                                                            onClick={() => setShowFullDescription(true)}
+                                                            className="mt-3 px-4 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white 
+                                                                      rounded-full text-sm font-medium
+                                                                      shadow-[0_0_15px_rgba(59,130,246,0.5)] 
+                                                                      hover:shadow-[0_0_25px_rgba(59,130,246,0.7)] 
+                                                                      hover:from-blue-600 hover:to-indigo-600
+                                                                      animate-pulse hover:animate-none
+                                                                      transition-all duration-300 ease-in-out"
+                                                        >
+                                                            See More
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                            
+                                            {showFullDescription && (
+                                                <button 
+                                                    onClick={() => setShowFullDescription(false)}
+                                                    className="mt-2 text-gray-500 font-medium hover:text-gray-700 text-sm"
+                                                >
+                                                    Show Less
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+                                    
+                                    <div className="mt-8">
+                                        <h3 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+                                            Resources <span className="text-blue-600">({resource.resources.length})</span>
+                                        </h3>
+                                        <div className="space-y-6">
+                                            {resource.resources.map((resc, index) => (
+                                                <div
+                                                    key={index}
+                                                    className="bg-white border border-gray-100 rounded-lg shadow-sm overflow-hidden"
+                                                >
+                                                    <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 flex justify-between items-center">
+                                                        <h2 className="font-medium text-blue-700">
+                                                            Resource{' '}
+                                                            <span className="font-medium text-blue-700">{index + 1}</span>
+                                                        </h2>
+                                                        <a
+                                                            href={resc.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                                                        >
+                                                            <span>Visit Resource</span>
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                className="h-4 w-4 ml-1"
+                                                                fill="none"
+                                                                viewBox="0 0 24 24"
+                                                                stroke="currentColor"
+                                                            >
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth={2}
+                                                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                                                                />
+                                                            </svg>
+                                                        </a>
+                                                    </div>
+                                                    <div className="p-4">
+                                                        <h3 className="font-semibold text-lg text-gray-800 mb-2">
+                                                            {resc.title}
+                                                        </h3>
+                                                        {resc.description && (
+                                                            <p className="text-gray-600 mb-4">{resc.description}</p>
+                                                        )}
+                                                        <div className="flex flex-col sm:flex-row border-t border-gray-100 pt-4 mt-2 bg-amber-50 justify-center items-center text-center">
+                                                            <div className="w-full sm:w-1/4 mb-3 sm:mb-0 flex justify-center items-center">
+                                                                <div className="bg-gray-50 border border-gray-100 rounded w-24 h-24 flex items-center justify-center overflow-hidden">
+                                                                    {resc.thumbnail_url ? (
+                                                                        <img
+                                                                            src={resc.thumbnail_url}
+                                                                            alt={resc.title}
+                                                                            className="w-full h-full object-cover"
+                                                                        />
+                                                                    ) : resc.favicon_url ? (
+                                                                        <img
+                                                                            src={resc.favicon_url}
+                                                                            alt={resc.site_name || 'Site icon'}
+                                                                            className="w-8 h-8"
+                                                                        />
+                                                                    ) : (
+                                                                        <div className="text-gray-400 text-xs">No image</div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            <div className="w-full sm:w-3/4 flex flex-col justify-center">
+                                                                <div className="text-center sm:text-left">
+                                                                    {resc.site_name && (
+                                                                        <div className="flex items-center justify-center sm:justify-start mb-1">
+                                                                            <span className="text-xs text-gray-500 uppercase tracking-wider bg-gray-100 py-1 px-2 rounded">
+                                                                                {resc.site_name}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex items-center justify-center sm:justify-start flex-wrap">
+                                                                        <a
+                                                                            href={resc.url}
+                                                                            target="_blank"
+                                                                            rel="noopener noreferrer"
+                                                                            className="text-blue-600 hover:text-blue-800 hover:underline text-sm break-all"
+                                                                        >
+                                                                            {resc.url}
+                                                                        </a>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row sm:justify-between items-start sm:items-center space-y-4 sm:space-y-0 pt-5">
                                         <div className="flex space-x-2">
                                             <div className="">
                                                 <div className="flex items-center bg-white rounded-lg shadow-sm px-4 py-2">
@@ -743,65 +885,63 @@ function ResourceDetailPage() {
                                                 </button>
                                                 
                                                 {isShareMenuOpen && (
-                                                    <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                                                    <div className="absolute right-0 mt-2 w-64 rounded-lg shadow-xl bg-white ring-1 ring-black ring-opacity-5 z-10 overflow-hidden">
                                                         <div className="py-1" role="menu" aria-orientation="vertical">
                                                             <button
                                                                 onClick={handleCopyLink}
-                                                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                                                                 role="menuitem"
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                                                                     <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" />
                                                                     <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" />
                                                                 </svg>
-                                                                Copy Link
+                                                                Copy Link Only
                                                             </button>
-                                                            <a
-                                                                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out this resource: "${resource.post_title}" on ResourceBase`)}&url=${encodeURIComponent(window.location.href)}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                                            
+                                                            <button
+                                                                onClick={() => handleSocialShare('twitter')}
+                                                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 w-full text-left border-t border-gray-100"
                                                                 role="menuitem"
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5 mr-2 fill-[#1DA1F2]">
                                                                     <path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/>
                                                                 </svg>
-                                                                Share on X
-                                                            </a>
-                                                            <a
-                                                                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.href)}&quote=${encodeURIComponent(`Check out this resource: "${resource.post_title}" on ResourceBase`)}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                                                Copy & Share on X
+                                                            </button>
+                                                            
+                                                            <button
+                                                                onClick={() => handleSocialShare('facebook')}
+                                                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 w-full text-left border-t border-gray-100"
                                                                 role="menuitem"
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5 mr-2 fill-[#1877F2]">
                                                                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                                                                 </svg>
-                                                                Share on Facebook
-                                                            </a>
-                                                            <a
-                                                                href={`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.href)}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                                                Copy & Share on Facebook
+                                                            </button>
+                                                            
+                                                            <button
+                                                                onClick={() => handleSocialShare('linkedin')}
+                                                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 w-full text-left border-t border-gray-100"
                                                                 role="menuitem"
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="h-5 w-5 mr-2 fill-[#0A66C2]">
                                                                     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
                                                                 </svg>
-                                                                Share on LinkedIn
-                                                            </a>
-                                                            <a
-                                                                href={`mailto:?subject=${encodeURIComponent(`Check out this resource: ${resource.post_title}`)}&body=${encodeURIComponent(`I thought you might be interested in this resource: ${window.location.href}`)}`}
-                                                                className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                                                                Copy & Share on LinkedIn
+                                                            </button>
+                                                            
+                                                            <button
+                                                                onClick={() => handleSocialShare('email')}
+                                                                className="flex items-center px-4 py-3 text-sm text-gray-700 hover:bg-gray-100 w-full text-left border-t border-gray-100"
                                                                 role="menuitem"
                                                             >
                                                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                                                 </svg>
-                                                                Share via Email
-                                                            </a>
+                                                                Copy & Share via Email
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 )}
@@ -824,98 +964,6 @@ function ResourceDetailPage() {
                                                         #{tag}
                                                     </Link>
                                                 ))}
-                                        </div>
-                                    </div>
-                                    <div className="mt-8">
-                                        <h3 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
-                                            Resources <span className="text-blue-600">({resource.resources.length})</span>
-                                        </h3>
-                                        <div className="space-y-6">
-                                            {resource.resources.map((resc, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="bg-white border border-gray-100 rounded-lg shadow-sm overflow-hidden"
-                                                >
-                                                    <div className="bg-blue-50 px-4 py-3 border-b border-blue-100 flex justify-between items-center">
-                                                        <h2 className="font-medium text-blue-700">
-                                                            Resource{' '}
-                                                            <span className="font-medium text-blue-700">{index + 1}</span>
-                                                        </h2>
-                                                        <a
-                                                            href={resc.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-blue-600 hover:text-blue-800 text-sm flex items-center"
-                                                        >
-                                                            <span>Visit Resource</span>
-                                                            <svg
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                                className="h-4 w-4 ml-1"
-                                                                fill="none"
-                                                                viewBox="0 0 24 24"
-                                                                stroke="currentColor"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth={2}
-                                                                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                                                />
-                                                            </svg>
-                                                        </a>
-                                                    </div>
-                                                    <div className="p-4">
-                                                        <h3 className="font-semibold text-lg text-gray-800 mb-2">
-                                                            {resc.title}
-                                                        </h3>
-                                                        {resc.description && (
-                                                            <p className="text-gray-600 mb-4">{resc.description}</p>
-                                                        )}
-                                                        <div className="flex flex-col sm:flex-row border-t border-gray-100 pt-4 mt-2 bg-amber-50 justify-center items-center text-center">
-                                                            <div className="w-full sm:w-1/4 mb-3 sm:mb-0 flex justify-center items-center">
-                                                                <div className="bg-gray-50 border border-gray-100 rounded w-24 h-24 flex items-center justify-center overflow-hidden">
-                                                                    {resc.thumbnail_url ? (
-                                                                        <img
-                                                                            src={resc.thumbnail_url}
-                                                                            alt={resc.title}
-                                                                            className="w-full h-full object-cover"
-                                                                        />
-                                                                    ) : resc.favicon_url ? (
-                                                                        <img
-                                                                            src={resc.favicon_url}
-                                                                            alt={resc.site_name || 'Site icon'}
-                                                                            className="w-8 h-8"
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="text-gray-400 text-xs">No image</div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            <div className="w-full sm:w-3/4 flex flex-col justify-center">
-                                                                <div className="text-center sm:text-left">
-                                                                    {resc.site_name && (
-                                                                        <div className="flex items-center justify-center sm:justify-start mb-1">
-                                                                            <span className="text-xs text-gray-500 uppercase tracking-wider bg-gray-100 py-1 px-2 rounded">
-                                                                                {resc.site_name}
-                                                                            </span>
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="flex items-center justify-center sm:justify-start flex-wrap">
-                                                                        <a
-                                                                            href={resc.url}
-                                                                            target="_blank"
-                                                                            rel="noopener noreferrer"
-                                                                            className="text-blue-600 hover:text-blue-800 hover:underline text-sm break-all"
-                                                                        >
-                                                                            {resc.url}
-                                                                        </a>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
                                         </div>
                                     </div>
                                     <div className="mb-4 py-4 flex justify-end">

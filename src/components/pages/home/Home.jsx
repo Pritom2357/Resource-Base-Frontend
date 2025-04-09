@@ -7,6 +7,7 @@ import ResourceCard from '../resources/ResourceCard';
 import PreferencesSelector from '../../layout/PreferencesSelector';
 import { useLoading } from '../../context/LoadingContext';
 import { useAuth } from '../../context/AuthProvider';
+import { useCache } from '../../context/CacheContext';
 
 
 function Home() {
@@ -23,6 +24,8 @@ function Home() {
   const [totalResources, setTotalResources] = useState(0);
   const resourcesPerPage = 6;
 
+  const {isValidCache, getCachedData, setCachedData, clearCache} = useCache();
+
   const [userStats, setUserStats] = useState({
     sharedCount: 0,
     viewedCount: 0,
@@ -36,8 +39,21 @@ function Home() {
     }
   }, [isAuthenticated, user]);
 
-  const fetchUserStats = async()=>{
+  const fetchUserStats = async () => {
     try {
+      if (isValidCache('user-stats-weekly')) {
+        // console.log('✅ CACHE HIT: user-stats-weekly');
+        const statsData = getCachedData('user-stats-weekly');
+        setUserStats({
+          sharedCount: statsData.shared_resources_count || 0,
+          viewedCount: statsData.viewed_resources_count || 0,
+          bookmarkCount: statsData.bookmarked_count || 0,
+          commentCount: statsData.commented_count || 0
+        });
+        return;
+      }
+      
+      // console.log('❌ CACHE MISS: user-stats-weekly');
       let token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 
       if(!token){
@@ -61,6 +77,9 @@ function Home() {
       }
 
       const data = await response.json();
+      
+
+      setCachedData('user-stats-weekly', data, 10 * 60 * 1000);
 
       setUserStats({
         sharedCount: data.shared_resources_count || 0,
@@ -68,17 +87,27 @@ function Home() {
         bookmarkCount: data.bookmarked_count || 0,
         commentCount: data.commented_count || 0
       });
-
     } catch (error) {
       console.error("Error fetching user status: ", error);
     }
-  }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) return;
     
     const checkPreferences = async () => {
       try {
+        if (isValidCache('user-preferences')) {
+          // console.log('✅ CACHE HIT: user-preferences');
+          const preferencesData = getCachedData('user-preferences');
+          setHasPreferences(
+            (preferencesData.tags && preferencesData.tags.length > 0) || 
+            (preferencesData.categories && preferencesData.categories.length > 0)
+          );
+          return;
+        }
+        
+        // console.log('❌ CACHE MISS: user-preferences');
         let token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 
         if(!token){
@@ -99,6 +128,9 @@ function Home() {
         }
         
         const data = await response.json();
+        
+        setCachedData('user-preferences', data, 24 * 60 * 60 * 1000);
+        
         setHasPreferences(
           (data.tags && data.tags.length > 0) || (data.categories && data.categories.length > 0)
         );
@@ -122,6 +154,28 @@ function Home() {
       setIsLoading(true);
       showLoading('Loading your personalized feed...');
       
+      const cacheKey = `personalized-resources-page${currentPage}`;
+      
+      if (isValidCache(cacheKey)) {
+        console.log(`✅ CACHE HIT: ${cacheKey}`);
+        const cachedData = getCachedData(cacheKey);
+        
+        if (cachedData.resources && cachedData.pagination) {
+          setResources(cachedData.resources);
+          setTotalPages(cachedData.pagination.totalPages);
+          setTotalResources(cachedData.pagination.totalCount);
+        } else {
+          setResources(cachedData);
+          setTotalPages(Math.ceil(cachedData.length / resourcesPerPage));
+        }
+        
+        setIsLoading(false);
+        hideLoading();
+        return;
+      }
+      
+      // console.log(`❌ CACHE MISS: ${cacheKey}`);
+      
       const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
       
       const response = await fetch(
@@ -138,6 +192,8 @@ function Home() {
       }
       
       const data = await response.json();
+      
+      setCachedData(cacheKey, data, 24 * 60 * 60 * 1000);
       
       if (data.resources && data.pagination) {
         setResources(data.resources);
@@ -157,6 +213,12 @@ function Home() {
   };
 
   const handleSavePreferences = (preferences) => {
+    clearCache('user-preferences');
+    
+    for (let i = 1; i <= Math.max(totalPages, 1); i++) {
+      clearCache(`personalized-resources-page${i}`);
+    }
+    
     setHasPreferences(true);
     fetchPersonalizedResources();
   };
@@ -243,7 +305,7 @@ function Home() {
               ) : hasPreferences === false ? (
                 <PreferencesSelector 
                   onSave={handleSavePreferences}
-                  onCancel={() => setHasPreferences(true)} // Add this new prop
+                  onCancel={() => setHasPreferences(true)}
                 />
               ) : (
                 <>
@@ -353,8 +415,14 @@ function Home() {
                         <div className="text-center py-10 bg-white rounded-lg shadow-sm">
                           <p className="text-gray-500">No resources found matching your preferences.</p>
                           <button 
-                            onClick={() => setHasPreferences(false)} 
-                            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                            onClick={() => {
+                              clearCache('user-preferences');
+                              for (let i = 1; i <= Math.max(totalPages, 1); i++) {
+                                clearCache(`personalized-resources-page${i}`);
+                              }
+                              setHasPreferences(false);
+                            }} 
+                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
                           >
                             Update Preferences
                           </button>
@@ -370,7 +438,13 @@ function Home() {
                           {/* Preference update button - now outside the grid */}
                           <div className="flex justify-center mt-6">
                             <button 
-                              onClick={() => setHasPreferences(false)} 
+                              onClick={() => {
+                                clearCache('user-preferences');
+                                for (let i = 1; i <= Math.max(totalPages, 1); i++) {
+                                  clearCache(`personalized-resources-page${i}`);
+                                }
+                                setHasPreferences(false);
+                              }} 
                               className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm font-medium"
                             >
                               Update Preferences

@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import Header from '../../layout/Header';
 import Footer from '../../layout/Footer';
 import Sidebar from '../../layout/Sidebar';
+import { useCache } from '../../context/CacheContext';
+import { useLoading } from '../../context/LoadingContext';
 
 function Tags() {
     const [tags, setTags] = useState([]);
@@ -15,14 +17,27 @@ function Tags() {
     const [currentPage, setCurrentPage] = useState(1);
     const [tagsPerPage] = useState(20);
 
+    const {showLoading, hideLoading} = useLoading();
+    const {isValidCache, getCachedData, setCachedData} = useCache();
+
     useEffect(() => {
         fetchTags();
     }, []);
 
     const fetchTags = async () => {
         try {
+            showLoading("Loading the tags...");
+            setIsLoading(true);
+            if(isValidCache('tags')){
+                const tagCache = getCachedData('tags');
+                setTags(tagCache);
+                setFilteredTags(tagCache);
+                setIsLoading(false);
+                hideLoading();
+                return;
+            }
             const response = await fetch(
-                `https://resource-base-backend-production.up.railway.app/api/resources/tags/popular?limit=200`
+                `https://resource-base-backend-production.up.railway.app/api/resources/tags/popular?limit=1000`
             );
 
             if (!response.ok) {
@@ -30,12 +45,14 @@ function Tags() {
             }
 
             const data = await response.json();
+            setCachedData('tags', data, 5*60*1000);
             setTags(data);
             setFilteredTags(data);
         } catch (error) {
             console.error('Error fetching tags:', error);
             setError('Failed to load tags. Please try again later.');
         } finally {
+            hideLoading();
             setIsLoading(false);
         }
     };

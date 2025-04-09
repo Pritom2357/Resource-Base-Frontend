@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthProvider.jsx'
 import Sidebar from '../../layout/Sidebar.jsx';
 import ResourceCard from '../resources/ResourceCard.jsx';
+import { useCache } from '../../context/CacheContext.jsx';
 
 function Resources() {
   const { user, logout } = useAuth();
@@ -12,13 +13,14 @@ function Resources() {
   const [resources, setResources] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortBy, setSortBy] = useState('vote_count');
+  const [sortBy, setSortBy] = useState('newest');
   
-  // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalResources, setTotalResources] = useState(0);
-  const resourcesPerPage = 6; // Adjust as needed
+  const resourcesPerPage = 6; 
+
+    const {isValidCache, getCachedData, setCachedData} = useCache();
   
   useEffect(() => {
     fetchResources();
@@ -27,6 +29,21 @@ function Resources() {
   const fetchResources = async () => {
     try {
       setIsLoading(true);
+
+      const cacheKey = `resources-${sortBy}-page${currentPage}`;
+
+      if(isValidCache(cacheKey)){
+        console.log(`✅ CACHE HIT: ${cacheKey}`);
+        const cachedData = getCachedData(cacheKey);
+        setResources(cachedData.resources);
+        setTotalPages(cachedData.pagination.totalPages);
+        setTotalResources(cachedData.pagination.totalCount);
+        setIsLoading(false);
+        return;
+      }else{
+        console.log(`❌ CACHE MISS: ${cacheKey}`);
+      }
+
       const response = await fetch(
         `https://resource-base-backend-production.up.railway.app/api/resources?sortBy=${sortBy}&limit=${resourcesPerPage}&offset=${(currentPage - 1) * resourcesPerPage}`
       );
@@ -36,6 +53,8 @@ function Resources() {
       }
       
       const data = await response.json();
+
+      setCachedData(cacheKey, data, 5*60*60)
       
       // console.log('API response:', data);
       // console.log('Has pagination info?', Boolean(data.resources && data.pagination));

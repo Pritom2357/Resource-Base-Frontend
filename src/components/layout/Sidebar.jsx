@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, Link } from 'react-router-dom'
+import { useCache } from '../context/CacheContext';
 
 function Sidebar() {
     const location = useLocation();
     const [popularTags, setPopularTags] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+
+    const {isValidCache, getCachedData, setCachedData} = useCache();
 
     useEffect(() => {
         fetchPopularTags();
@@ -13,6 +16,13 @@ function Sidebar() {
     const fetchPopularTags = async () => {
         setIsLoading(true);
         try {
+            // Add cache check
+            if (isValidCache('tags')) {
+                setPopularTags(getCachedData('tags'));
+                setIsLoading(false);
+                return;
+            }
+            
             const response = await fetch(
                 `https://resource-base-backend-production.up.railway.app/api/resources/tags/popular`
             );
@@ -20,6 +30,8 @@ function Sidebar() {
             if(response.ok){
                 const data = await response.json();
                 setPopularTags(data.slice(0, 5));
+                // Cache results
+                setCachedData('tags', data.slice(0, 5), 30 * 60 * 1000); // 30 minutes
             } else {
                 setPopularTags([
                     { tag_name: 'JavaScript', count: 48 },

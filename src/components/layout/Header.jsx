@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthProvider';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import SearchModal from './SearchModal';
 import { useWebSocket } from '../context/WebSocketProvider';
 import NotificationItem from './NotificationItem';
@@ -21,6 +21,7 @@ function Header() {
   const notificationPanelRef = useRef(null);
   const userPhotoKey = user?.photo || 'no-photo';
   const [notificationPosition, setNotificationPosition] = useState({ top: 0, right: 0 });
+  const location = useLocation();
 
   // console.log(user);
   
@@ -45,6 +46,14 @@ function Header() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  useEffect(()=>{
+    const timer = setTimeout(()=>{
+      setMobileMenuOpen(false);
+    }, 500);
+
+    return ()=> clearTimeout(timer);
+  }, [location]);
 
   useEffect(() => {
     function handleClickOutside(event) {

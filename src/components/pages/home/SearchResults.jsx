@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { cache, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import Sidebar from '../../layout/Sidebar';
 import ResourceCard from '../resources/ResourceCard';
+import { useCache } from '../../context/CacheContext';
+import { useLoading } from '../../context/LoadingContext';
 
 function SearchResults() {
     const [searchParams] = useSearchParams();
@@ -14,25 +16,60 @@ function SearchResults() {
     const [error, setError] = useState(null);
     const [categoryName, setCategoryName] = useState('');
 
+    const {showLoading, hideLoading} = useLoading();
+    const {isValidCache, getCachedData, setCachedData} = useCache();
+
     useEffect(()=>{
         const fetchResources = async ()=>{
+            showLoading("Loading your resources...")
             setIsLoading(true);
             setError(null);
             try {
-                let url;
+                let url = null;
+                let cacheKey = null;
+
                 if(tag){
+                    cacheKey = `search-tag-${tag}`;
                     url = `https://resource-base-backend-production.up.railway.app/api/resources/search?tag=${encodeURIComponent(tag)}`;
+
                 }else if(category){
+                    cacheKey = `search-category-${category}`;
                     url = `https://resource-base-backend-production.up.railway.app/api/resources/search?category=${encodeURIComponent(category)}`;
+
+                    if(isValidCache('categories')){
+                        const categories = getCachedData('categories');
+                        const categoryData = categories.find(c => c.id === category);
+                        if(categoryData){
+                            setCategoryName(categoryData.name);
+                        }
+                    }
+
                 } else if(query){
+                    cacheKey = `search-query-${query}`;
                     url = `https://resource-base-backend-production.up.railway.app/api/resources/search?q=${encodeURIComponent(query)}`
                 }else{
                     setResources([]);
                     setError("No search parameters provided");
                     setIsLoading(false);
+                    hideLoading();
                     return;
                 }
 
+                if(cacheKey && isValidCache(cacheKey)){
+                    const cachedData = getCachedData(cacheKey);
+                    setResources(cachedData);
+                    if(cachedData[0]?.category_name){
+                        setCategoryName(cachedData[0].category_name);
+                    }
+                    setIsLoading(false);
+                    hideLoading();
+                    return;
+                }
+                
+                if(!url) {
+                    throw new Error("No search URL could be constructed");
+                }
+                
                 const response = await fetch(url);
                 // console.log(response);
                 
@@ -46,16 +83,20 @@ function SearchResults() {
                 setCategoryName(data[0]?.category_name || "Uncategorized");
                 
                 setResources(data);
+                if (cacheKey) {
+                    setCachedData(cacheKey, data, 5*60*1000);
+                }
             } catch (error) {
                 console.error('Search error:', error);
                 setError('Failed to load resources. Please try again later.');
             } finally{
                 setIsLoading(false);
+                hideLoading();
             }
         }
 
         fetchResources();
-    }, [tag, query]);
+    }, [tag, category, query]);
 
     const pageTitle = tag
         ? `Resources tagged with "${tag}"`

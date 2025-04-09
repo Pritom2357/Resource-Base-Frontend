@@ -3,6 +3,7 @@ import { useLoading } from '../../context/LoadingContext';
 import Sidebar from '../../layout/Sidebar';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthProvider';
+import { useCache } from '../../context/CacheContext';
 
 function Users() {
     const [users, setUsers] = useState([]);
@@ -15,40 +16,81 @@ function Users() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalUsers, setTotalUsers] = useState(0);
+    const [authChecked, setAuthChecked] = useState(false);
     const [usersPerPage] = useState(12);
     const {user, isAuthenticated} = useAuth();
     const navigate = useNavigate();
 
-    useEffect(()=>{
-        if(!user || !isAuthenticated){
-            navigate('/login');
-            return;
-        }
-        fetchUsers()
-    }, [currentPage]);
+    const {isValidCache, getCachedData, setCachedData} = useCache();
 
-    const fetchUsers = async ()=>{
-        
+    useEffect(()=>{
+        if(user || isAuthenticated){
+            setAuthChecked(true);
+        }else{
+            const timer = setTimeout(()=>{
+                if(!user || !isAuthenticated){
+                    navigate('/login');
+                }
+                setAuthChecked(true);
+            }, 500);
+
+            return ()=> clearTimeout(timer);
+        }
+    }, [user, isAuthenticated, navigate]);
+
+    useEffect(()=>{
+        if( authChecked &&(user || isAuthenticated)){
+            fetchUsers();
+        }
+    }, [currentPage, authChecked, user, isAuthenticated]);
+
+    const fetchUsers = async () => {
         try {
             setIsLoading(true);
             showLoading("Loading users...");
 
+            const cacheKey = `users-page${currentPage}`;
+            
+            if(isValidCache(cacheKey)){
+                // console.log(`✅ CACHE HIT: ${cacheKey}`);
+                const cachedData = getCachedData(cacheKey);
+                
+                if(cachedData.users && cachedData.pagination){
+                    setUsers(cachedData.users);
+                    setFilteredUsers(cachedData.users);
+                    setTotalPages(cachedData.pagination.totalPages);
+                    setTotalUsers(cachedData.pagination.totalCount);
+                } else {
+                    setUsers(cachedData);
+                    setFilteredUsers(cachedData);
+                    setTotalPages(Math.ceil(cachedData.length/usersPerPage));
+                }
+                
+                setIsLoading(false);
+                hideLoading();
+                return;
+            }
+            
+            // console.log(`❌ CACHE MISS: ${cacheKey}`);
+            
             const response = await fetch(
                 `https://resource-base-backend-production.up.railway.app/api/users/all?limit=${usersPerPage}&offset=${(currentPage - 1) * usersPerPage}`
             );
 
             if(!response.ok){
-                throw new Error("Failed to fecth users");
+                throw new Error("Failed to fetch users"); 
             }
 
             const data = await response.json();
-
+            
+            setCachedData(cacheKey, data, 60*60*1000);
+            
             if(data.users && data.pagination){
                 setUsers(data.users);
                 setFilteredUsers(data.users);
                 setTotalPages(data.pagination.totalPages);
                 setTotalUsers(data.pagination.totalCount);
-            }else{
+            } else {
                 setUsers(data);
                 setFilteredUsers(data);
                 setTotalPages(Math.ceil(data.length/usersPerPage));
@@ -75,7 +117,7 @@ function Users() {
     }, [searchTerm, users]);
 
     const formatDate = (dateString)=>{
-        if(!dateString) return 'Never';length
+        if(!dateString) return 'Never';
 
         const date = new Date(dateString);
         const now = new Date();

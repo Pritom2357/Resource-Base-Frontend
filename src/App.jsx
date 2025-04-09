@@ -26,6 +26,7 @@ import NotificationsPage from './components/pages/home/NotificationsPage'
 import EditResourcePage from './components/pages/home/EditResourcePage'
 import AboutPage from './components/pages/home/AboutPage'
 import ContactPage from './components/pages/home/ContactPage'
+import { CacheProvider } from './components/context/CacheContext'
 
 function App() {
   
@@ -33,41 +34,43 @@ function App() {
     <Router>
       <AuthProvider>
         <LoadingProvider>
-          <WebSocketProvider>
-            <RouteChangeListener />
-            <Routes>
-              <Route path='/login' element={<Login/>} />
-              <Route path='/register' element={<Register/>} />
-              <Route path='/oauth-callback' element={<OAuthCallback/>} />
+          <CacheProvider>
+            <WebSocketProvider>
+              <RouteChangeListener />
+              <Routes>
+                <Route path='/login' element={<Login/>} />
+                <Route path='/register' element={<Register/>} />
+                <Route path='/oauth-callback' element={<OAuthCallback/>} />
 
-              <Route element={<Layout/>}>
-                <Route path='/tags' element={<Tags/>}/>
-                <Route path='/' element={<Resources/>}/>
-                <Route path='/resources/:id' element={<ResourceDetailPage/>}/>
-                <Route path='/user/:username' element = {<UserProfilePage/>}/>
-                <Route path='/profile' element = {<UserProfilePage/>}/>
-                <Route path='/forgot-password' element = {<ForgotPassword/>}/>
-                <Route path='/search' element = {<SearchResults/>}/>
-                <Route path='/categories' element = {<Categories/>}/>
-                <Route path='/users' element={<Users/>}/>
-                <Route path='/about-us' element = {<AboutPage/>}/>
-                <Route path='/contact-us' element = {<ContactPage/>}/>
-              </Route>
+                <Route element={<Layout/>}>
+                  <Route path='/tags' element={<Tags/>}/>
+                  <Route path='/' element={<Resources/>}/>
+                  <Route path='/resources/:id' element={<ResourceDetailPage/>}/>
+                  <Route path='/user/:username' element = {<UserProfilePage/>}/>
+                  <Route path='/profile' element = {<UserProfilePage/>}/>
+                  <Route path='/forgot-password' element = {<ForgotPassword/>}/>
+                  <Route path='/search' element = {<SearchResults/>}/>
+                  <Route path='/categories' element = {<Categories/>}/>
+                  <Route path='/users' element={<Users/>}/>
+                  <Route path='/about-us' element = {<AboutPage/>}/>
+                  <Route path='/contact-us' element = {<ContactPage/>}/>
+                </Route>
 
-              <Route element={<ProtectedRoute />}>
-                <Route path='/home' element={<Home/>}/>
-                <Route path='/create-resource' element={<CreateResourcePage />} />
-                <Route path='/profile/edit' element={<EditProfile/>}/>
-                <Route path='/profile/password' element = {<ChangePassword/>}/>
-                <Route path='/bookmarks' element={<BookmarksPage/>}/>
-                <Route path='/notifications' element={<NotificationsPage />} />
-                <Route path='/resources/edit/:id' element={<EditResourcePage />} />
-                {/* Add any other routes that require authentication */}
-              </Route>
+                <Route element={<ProtectedRoute />}>
+                  <Route path='/home' element={<Home/>}/>
+                  <Route path='/create-resource' element={<CreateResourcePage />} />
+                  <Route path='/profile/edit' element={<EditProfile/>}/>
+                  <Route path='/profile/password' element = {<ChangePassword/>}/>
+                  <Route path='/bookmarks' element={<BookmarksPage/>}/>
+                  <Route path='/notifications' element={<NotificationsPage />} />
+                  <Route path='/resources/edit/:id' element={<EditResourcePage />} />
+                  {/* Add any other routes that require authentication */}
+                </Route>
 
-              <Route path='*' element={<Navigate to="/" />} />
-            </Routes>
-          </WebSocketProvider>
+                <Route path='*' element={<Navigate to="/" />} />
+              </Routes>
+            </WebSocketProvider>
+          </CacheProvider>
         </LoadingProvider>
       </AuthProvider>
     </Router>

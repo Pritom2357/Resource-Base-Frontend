@@ -1,14 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useCache } from '../context/CacheContext';
 
 function SimilarResources({ resourceId, tags = [] }) {
   const [similarResources, setSimilarResources] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const {isValidCache, getCachedData, setCachedData} = useCache();
+
   useEffect(() => {
     const fetchSimilarResources = async () => {
       if (!resourceId || !tags || tags.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+
+      const cacheKey = `similar-resource-${resourceId}`;
+      if(isValidCache(cacheKey)){
+        const cachedData = getCachedData(cacheKey);
+        setSimilarResources(cachedData);
         setIsLoading(false);
         return;
       }
@@ -27,7 +38,8 @@ function SimilarResources({ resourceId, tags = [] }) {
           const data = await response.json();
           // console.log("Similar resources data:", data);
           const filtered = Array.isArray(data) ? data.filter(item => item && item.id !== resourceId) : [];
-          setSimilarResources(filtered.slice(0, 3)); 
+          setSimilarResources(filtered.slice(0, 3));
+          setCachedData(cacheKey, filtered.slice(0, 3), 24&60*60*1000); 
         } else {
           const errorText = await response.text();
           console.error("Error response:", errorText);
@@ -45,7 +57,7 @@ function SimilarResources({ resourceId, tags = [] }) {
   }, [resourceId, tags]);
 
   if (error) {
-    return null; // Don't show anything if there's an error
+    return null; 
   }
 
   return (

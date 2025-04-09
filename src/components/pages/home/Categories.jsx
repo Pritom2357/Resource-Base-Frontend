@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Header from '../../layout/Header';
 import Footer from '../../layout/Footer';
 import Sidebar from '../../layout/Sidebar';
+import { useCache } from '../../context/CacheContext';
 
 function Categories() {
     const [categories, setCategories] = useState([]);
@@ -11,11 +12,24 @@ function Categories() {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    const {isValidCache, getCachedData, setCachedData} = useCache();
+
     useEffect(() => {
         fetchCategories();
     }, []);
 
     const fetchCategories = async () => {
+
+        setIsLoading(true);
+
+        if(isValidCache('categories')){
+            const cachedCategories = getCachedData('categories');
+            setCategories(cachedCategories);
+            setFilteredCategories(cachedCategories);
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const response = await fetch(
                 `https://resource-base-backend-production.up.railway.app/api/resources/categories`
@@ -27,6 +41,7 @@ function Categories() {
 
             const data = await response.json();
             setCategories(data);
+            setCachedData('categories', data, 24*60*60*1000);
             setFilteredCategories(data);
         } catch (error) {
             console.error('Error fetching categories:', error);

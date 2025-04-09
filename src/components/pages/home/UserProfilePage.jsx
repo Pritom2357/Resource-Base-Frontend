@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react'
+import React, { cache, useEffect, useState } from 'react'
 import { useAuth } from '../../context/AuthProvider'
 import { Link, useParams } from 'react-router-dom'
 import Header from '../../layout/Header';
 import Footer from '../../layout/Footer';
 import Sidebar from '../../layout/Sidebar';
+import { useLoading } from '../../context/LoadingContext';
+import { useCache } from '../../context/CacheContext';
 
 function UserProfilePage() {
 
@@ -25,6 +27,9 @@ function UserProfilePage() {
 
     const profileUsername = username || (currentUser ? currentUser.username : '');
 
+    const {showLoading, hideLoading} = useLoading();
+    const {isValidCache, getCachedData, setCachedData} = useCache();
+
     // useEffect(()=>{
     //     let token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     //     if(!token){
@@ -35,9 +40,22 @@ function UserProfilePage() {
     useEffect(()=>{
         if(!profileUsername) return;
 
+        const targetUsername = username || currentUser?.username;
+
         const fetchUserProfile = async ()=>{
+            showLoading("Loading user profile");
             setIsLoading(true);
             setError(null);
+
+            const cacheKey = `profile-${targetUsername}`;
+
+            if(isValidCache(cacheKey)){
+                const cachedData = getCachedData(cacheKey);
+                setUserProfile(cachedData);
+                setIsLoading(false);
+                hideLoading();
+                return;
+            };
 
             try {
 
@@ -68,12 +86,14 @@ function UserProfilePage() {
 
                 const data = await response.json();
                 setUserProfile(data);
+                setCachedData(cacheKey, data, 15*60*60);
                 document.title = `${data.username}'s Profile | Resource Base`
             } catch (error) {
                 console.error("Error fetching profile: ", error);
                 setError("Failed to load user profile. Please try again later. ");
             } finally{
                 setIsLoading(false);
+                hideLoading();
             }
         }
 
@@ -86,6 +106,7 @@ function UserProfilePage() {
                 if(response.ok){
                     const data = await response.json();
                     setUserResources(data);
+                    setCachedData(`user-resources-${profileUsername}`, data, 10 * 60 * 1000);
                 }
            } catch (error) {
                 console.error("Error fetching user resources: ", error);
@@ -104,6 +125,7 @@ function UserProfilePage() {
                 if(response.ok){
                     const data = await response.json();
                     setViewedTags(data);
+                    setCachedData(`user-tags-${profileUsername}`, data, 30 * 60 * 1000);
                 }else{
                     console.error("Failed to fetch viewed tags");
                 }
@@ -136,7 +158,6 @@ function UserProfilePage() {
             setBadgeCounts(countsData);
           }
           
-          // Fetch badges list
           const badgesResponse = await fetch(
             `https://resource-base-backend-production.up.railway.app/api/users/${profileUsername}/badges`
           );
@@ -146,6 +167,11 @@ function UserProfilePage() {
             // console.log("Badges data:", badgesData);
             setBadges(badgesData);
           }
+
+          setCachedData(`user-badges-${profileUsername}`, {
+              counts: countsData,
+              badges: badgesData
+          }, 60 * 60 * 1000);
         } catch (error) {
           console.error("Error fetching badges:", error);
         } finally {

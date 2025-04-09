@@ -6,6 +6,7 @@ import Sidebar from '../../layout/Sidebar';
 import ResourceCard from '../resources/ResourceCard';
 import { useAuth } from '../../context/AuthProvider';
 import { useLoading } from '../../context/LoadingContext';
+import { useCache } from '../../context/CacheContext'; 
 
 function BookmarksPage() {
     const [bookmarks, setBookmarks] = useState([]);
@@ -13,6 +14,7 @@ function BookmarksPage() {
     const [error, setError] = useState(null);
     const { isAuthenticated, user } = useAuth();
     const { showLoading, hideLoading } = useLoading();
+    const { isValidCache, getCachedData, setCachedData, clearCache } = useCache(); 
 
     useEffect(() => {
         if (isAuthenticated && user) {
@@ -20,12 +22,25 @@ function BookmarksPage() {
         }
     }, [isAuthenticated, user]);
 
-    const fetchBookmarks = async () => {
+    const fetchBookmarks = async (forceRefresh = false) => {
         setIsLoading(true);
         setError(null);
         showLoading("Loading your bookmarks...");
         
         try {
+            const cacheKey = `user-bookmarks-${user.id}`;
+            
+            if (!forceRefresh && isValidCache(cacheKey)) {
+                // console.log(`✅ CACHE HIT: ${cacheKey}`);
+                const cachedBookmarks = getCachedData(cacheKey);
+                setBookmarks(cachedBookmarks);
+                setIsLoading(false);
+                hideLoading();
+                return;
+            }
+            
+            // console.log(`❌ CACHE MISS: ${cacheKey}`);
+            
             const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
             
             if (!token) {
@@ -51,12 +66,50 @@ function BookmarksPage() {
             const data = await response.json();
             setBookmarks(data);
             
+            setCachedData(cacheKey, data, 5 * 60 * 1000);
+            
         } catch (error) {
             console.error("Failed to fetch bookmarks:", error);
             setError(error.message || "Failed to load bookmarks. Please try again later.");
         } finally {
             setIsLoading(false);
             hideLoading();
+        }
+    };
+
+    const handleRemoveBookmark = async (resourceId) => {
+        try {
+            const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+            
+            if (!token) {
+                throw new Error("Authentication required");
+            }
+            
+            const response = await fetch(
+                `https://resource-base-backend-production.up.railway.app/api/resources/${resourceId}/bookmark`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                }
+            );
+            
+            if (!response.ok) {
+                throw new Error("Failed to remove bookmark");
+            }
+            
+            setBookmarks(prevBookmarks => 
+                prevBookmarks.filter(bookmark => bookmark.id !== resourceId)
+            );
+            
+            clearCache(`user-bookmarks-${user.id}`);
+            
+            clearCache(`resource-${resourceId}`);
+            
+        } catch (error) {
+            console.error("Failed to remove bookmark:", error);
+            alert("Failed to remove bookmark. Please try again.");
         }
     };
 
@@ -71,8 +124,20 @@ function BookmarksPage() {
                         </div>
                         <div className="flex-1">
                             <div className="bg-white rounded-lg shadow-sm p-6">
-                                <h1 className="text-2xl font-bold text-gray-900 mb-2">Your Bookmarks</h1>
-                                <p className="text-gray-600 mb-6">Resources you've saved for later reference</p>
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h1 className="text-2xl font-bold text-gray-900 mb-2">Your Bookmarks</h1>
+                                        <p className="text-gray-600">Resources you've saved for later reference</p>
+                                    </div>
+                                    {bookmarks.length > 0 && (
+                                        <button 
+                                            onClick={() => fetchBookmarks(true)}
+                                            className="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+                                        >
+                                            Refresh
+                                        </button>
+                                    )}
+                                </div>
                                 
                                 {!isAuthenticated ? (
                                     <div className="text-center py-16 bg-blue-50 rounded-lg">
@@ -116,7 +181,11 @@ function BookmarksPage() {
                                         
                                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                             {bookmarks.map((resource) => (
-                                                <ResourceCard key={resource.id} resource={resource} />
+                                                <ResourceCard 
+                                                    key={resource.id} 
+                                                    resource={resource} 
+                                                    onRemoveBookmark={() => handleRemoveBookmark(resource.id)}
+                                                />
                                             ))}
                                         </div>
                                     </>
