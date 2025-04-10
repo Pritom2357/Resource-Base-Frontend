@@ -48,6 +48,8 @@ function UserProfilePage() {
             setError(null);
 
             const cacheKey = `profile-${targetUsername}`;
+            const isCurrentUser = isAuthenticated && currentUser && (profileUsername === currentUser.username);
+            setIsOwner(isCurrentUser)
 
             if(isValidCache(cacheKey)){
                 const cachedData = getCachedData(cacheKey);

@@ -453,7 +453,7 @@ function EditProfile() {
                                                 <div className="space-y-2">
                                                     {formData.social_links.map((link, index) => (
                                                         <div key={index} className="flex items-center">
-                                                            <div className="flex-1 bg-gray-50 p-2 rounded-md">
+                                                            <div className="flex-1 bg-gray-50 p-2 rounded-md truncate">
                                                                 <span className="font-medium">{link.name}: </span>
                                                                 <a 
                                                                     href={link.url} 
