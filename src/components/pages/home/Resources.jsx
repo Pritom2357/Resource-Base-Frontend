@@ -214,7 +214,7 @@ function Resources() {
               </div>
             ) : (
               <div className="space-y-4">
-                {(resources.length === 0 && !isValidCache(key)) ? (
+                {(!isValidCache(key) && resources.length === 0  ) ? (
                   <div className="text-center py-10 bg-white rounded-lg shadow-sm">
                     <p className="text-gray-500">No resources found.</p>
                   </div>
