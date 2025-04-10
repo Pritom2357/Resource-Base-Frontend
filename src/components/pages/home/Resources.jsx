@@ -41,7 +41,6 @@ function Resources() {
       }
   
       const cacheKey = `resources-${sortBy}-page${currentPage}`;
-      setKey(cacheKey);
   
       if(isValidCache(cacheKey)){
         const cachedData = getCachedData(cacheKey);
@@ -173,7 +172,7 @@ function Resources() {
               </div>
             </div>
             
-            {error && isValidCache(key) && (
+            {error && getCachedData() && (
               <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
                 <div className="flex">
                   <div className="flex-shrink-0">
