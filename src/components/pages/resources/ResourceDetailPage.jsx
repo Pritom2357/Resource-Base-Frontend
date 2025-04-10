@@ -139,7 +139,7 @@ function ResourceDetailPage() {
                 }
 
                 const data = await response.json();
-                console.log(data);
+                // console.log(data);
                 
                 setResource(data);
                 document.title = `${data.post_title} | Resource Base`;

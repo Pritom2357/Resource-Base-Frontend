@@ -157,7 +157,7 @@ function UserProfilePage() {
           if (countsResponse.ok) {
             const countsData = await countsResponse.json();
             // console.log("Badge counts data:", countsData);
-            setBadgeCounts(countsData);
+            // setBadgeCounts(countsData);
           }
           
           const badgesResponse = await fetch(
@@ -170,10 +170,10 @@ function UserProfilePage() {
             setBadges(badgesData);
           }
 
-          setCachedData(`user-badges-${profileUsername}`, {
-              counts: countsData,
-              badges: badgesData
-          }, 60 * 60 * 1000);
+        //   setCachedData(`user-badges-${profileUsername}`, {
+        //       counts: countsData,
+        //       badges: badgesData
+        //   }, 60 * 60 * 1000);
         } catch (error) {
           console.error("Error fetching badges:", error);
         } finally {
