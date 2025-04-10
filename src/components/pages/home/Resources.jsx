@@ -23,42 +23,47 @@ function Resources() {
     const {isValidCache, getCachedData, setCachedData} = useCache();
   
   useEffect(() => {
-    fetchResources();
-  }, [sortBy, currentPage]);
+    if (user) {
+      fetchResources();
+    }
+  }, [sortBy, currentPage, user]); 
   
-  const fetchResources = async () => {
+  const fetchResources = async (retryCount = 0) => {
     try {
       setIsLoading(true);
-
+      
+      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+      if (!token && retryCount < 3) {
+        console.log(`No token available, retrying (${retryCount + 1}/3)...`);
+        setTimeout(() => fetchResources(retryCount + 1), 1000);
+        return;
+      }
+  
       const cacheKey = `resources-${sortBy}-page${currentPage}`;
-
+  
       if(isValidCache(cacheKey)){
-        // console.log(`✅ CACHE HIT: ${cacheKey}`);
         const cachedData = getCachedData(cacheKey);
         setResources(cachedData.resources);
         setTotalPages(cachedData.pagination.totalPages);
         setTotalResources(cachedData.pagination.totalCount);
         setIsLoading(false);
         return;
-      }else{
-        // console.log(`❌ CACHE MISS: ${cacheKey}`);
       }
-
+  
+      console.log("Fetching resources for page", currentPage);
       const response = await fetch(
-        `https://resource-base-backend-production.up.railway.app/api/resources?sortBy=${sortBy}&limit=${resourcesPerPage}&offset=${(currentPage - 1) * resourcesPerPage}`
+        `https://resource-base-backend-production.up.railway.app/api/resources?sortBy=${sortBy}&limit=${resourcesPerPage}&offset=${(currentPage - 1) * resourcesPerPage}`,
+        {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        }
       );
       
       if (!response.ok) {
-        throw new Error('Failed to fetch resources');
+        throw new Error(`Failed to fetch resources: ${response.status}`);
       }
       
       const data = await response.json();
-
-      setCachedData(cacheKey, data, 5*60*1000)
-      
-      // console.log('API response:', data);
-      // console.log('Has pagination info?', Boolean(data.resources && data.pagination));
-      // console.log('Total pages:', totalPages);
+      setCachedData(cacheKey, data, 5*60*1000);
       
       if (data.resources && data.pagination) {
         setResources(data.resources);
@@ -71,6 +76,11 @@ function Resources() {
     } catch (err) {
       console.error('Error fetching resources:', err);
       setError(err.message);
+      
+      if (err.message === 'Failed to fetch' && retryCount < 3) {
+        console.log(`Network error, retrying (${retryCount + 1}/3)...`);
+        setTimeout(() => fetchResources(retryCount + 1), 1500);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -163,7 +173,22 @@ function Resources() {
             
             {error && (
               <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
-                <p className="text-red-700">{error}</p>
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"></path>
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <p className="text-red-700">{error}</p>
+                    <button 
+                      onClick={() => fetchResources()} 
+                      className="mt-2 text-sm font-medium text-red-700 hover:text-red-600"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             
