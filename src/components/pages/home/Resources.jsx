@@ -33,7 +33,7 @@ function Resources() {
       const cacheKey = `resources-${sortBy}-page${currentPage}`;
 
       if(isValidCache(cacheKey)){
-        console.log(`✅ CACHE HIT: ${cacheKey}`);
+        // console.log(`✅ CACHE HIT: ${cacheKey}`);
         const cachedData = getCachedData(cacheKey);
         setResources(cachedData.resources);
         setTotalPages(cachedData.pagination.totalPages);
@@ -41,7 +41,7 @@ function Resources() {
         setIsLoading(false);
         return;
       }else{
-        console.log(`❌ CACHE MISS: ${cacheKey}`);
+        // console.log(`❌ CACHE MISS: ${cacheKey}`);
       }
 
       const response = await fetch(
@@ -54,7 +54,7 @@ function Resources() {
       
       const data = await response.json();
 
-      setCachedData(cacheKey, data, 5*60*60)
+      setCachedData(cacheKey, data, 5*60*1000)
       
       // console.log('API response:', data);
       // console.log('Has pagination info?', Boolean(data.resources && data.pagination));

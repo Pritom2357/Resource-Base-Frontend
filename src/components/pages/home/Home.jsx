@@ -41,19 +41,9 @@ function Home() {
 
   const fetchUserStats = async () => {
     try {
-      if (isValidCache('user-stats-weekly')) {
-        // console.log('✅ CACHE HIT: user-stats-weekly');
-        const statsData = getCachedData('user-stats-weekly');
-        setUserStats({
-          sharedCount: statsData.shared_resources_count || 0,
-          viewedCount: statsData.viewed_resources_count || 0,
-          bookmarkCount: statsData.bookmarked_count || 0,
-          commentCount: statsData.commented_count || 0
-        });
-        return;
-      }
+      // Clear cache to force fresh fetch
+      clearCache('user-stats-weekly');
       
-      // console.log('❌ CACHE MISS: user-stats-weekly');
       let token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 
       if(!token){
@@ -78,17 +68,21 @@ function Home() {
 
       const data = await response.json();
       
-
-      setCachedData('user-stats-weekly', data, 30 * 1000);
-
       setUserStats({
         sharedCount: data.shared_resources_count || 0,
         viewedCount: data.viewed_resources_count || 0,
-        bookmarkCount: data.bookmarked_count || 0,
-        commentCount: data.commented_count || 0
+        bookmarkCount: data.bookmarked_count || data.bookmarks_count || data.bookmark_count || 0,
+        commentCount: data.commented_count || data.comments_count || data.comment_count || 0
       });
+      
+      setCachedData('user-stats-weekly', {
+        shared_resources_count: data.shared_resources_count || 0,
+        viewed_resources_count: data.viewed_resources_count || 0,
+        bookmarked_count: data.bookmarked_count || data.bookmarks_count || data.bookmark_count || 0,
+        commented_count: data.commented_count || data.comments_count || data.comment_count || 0
+      }, 30 * 1000);
     } catch (error) {
-      console.error("Error fetching user status: ", error);
+      console.error("Error fetching user stats:", error);
     }
   };
 
