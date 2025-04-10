@@ -274,6 +274,12 @@ function ResourceDetailPage() {
             setCommentText('');
             clearCache(`resource-${id}`);
             hideLoading();
+            
+            fetchNotifications(); 
+            
+            if (typeof clearCache === 'function') {
+              clearCache('user-stats-weekly');
+            }
         } catch (error) {
             hideLoading();
             console.error('Error posting comment:', error);

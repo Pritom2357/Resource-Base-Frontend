@@ -26,6 +26,12 @@ export function WebSocketProvider({children}) {
 
       socketInstance.on('connect', ()=>{
         console.log('Connected to notification service');
+        
+        socketInstance.emit('register_connection', { userId: user.id });
+        
+        setTimeout(() => {
+          socketInstance.emit('check_connection_status', { userId: user.id });
+        }, 2000);
       });
 
       socketInstance.on('connect_error', (error)=>{
@@ -44,7 +50,16 @@ export function WebSocketProvider({children}) {
             icon: '/favicon.ico'
           });
         }
-      })
+      });
+
+      socketInstance.on('connection_status', (status) => {
+        console.log('Connection status:', status);
+      });
+
+      socketInstance.onAny((event, ...args) => {
+        console.log(`Socket event received: ${event}`, args);
+      });
+
       setSocket(socketInstance);
     }
 
