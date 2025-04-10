@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthProvider';
 import { useLoading } from '../../context/LoadingContext';
 import SimilarResources from '../../layout/SimilarResources';
 import { useCache } from '../../context/CacheContext';
+import { useWebSocket } from '../../context/WebSocketProvider';
 
 const formatCommentDate = (dateString) => {
   try {
@@ -75,6 +76,7 @@ function ResourceDetailPage() {
     const { showLoading, hideLoading } = useLoading();
 
     const {isValidCache, getCachedData, setCachedData, clearCache} = useCache();
+    const {fetchNotifications} = useWebSocket();
 
     const truncateHTML = (html, limit) => {
       if (!html) return '';
@@ -275,7 +277,7 @@ function ResourceDetailPage() {
             clearCache(`resource-${id}`);
             hideLoading();
             
-            // fetchNotifications(); 
+            fetchNotifications(); 
             
             if (typeof clearCache === 'function') {
               clearCache('user-stats-weekly');
