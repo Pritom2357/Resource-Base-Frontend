@@ -14,6 +14,7 @@ function Resources() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortBy, setSortBy] = useState('newest');
+  const [key, setKey] = useState('');
   
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -40,6 +41,7 @@ function Resources() {
       }
   
       const cacheKey = `resources-${sortBy}-page${currentPage}`;
+      setKey(cacheKey);
   
       if(isValidCache(cacheKey)){
         const cachedData = getCachedData(cacheKey);
@@ -171,7 +173,7 @@ function Resources() {
               </div>
             </div>
             
-            {error && (
+            {error && isValidCache(key) && (
               <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
                 <div className="flex">
                   <div className="flex-shrink-0">
