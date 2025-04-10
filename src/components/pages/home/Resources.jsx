@@ -24,10 +24,8 @@ function Resources() {
     const {isValidCache, getCachedData, setCachedData} = useCache();
   
   useEffect(() => {
-    if (user) {
       fetchResources();
-    }
-  }, [sortBy, currentPage]); 
+  }, [sortBy, currentPage, user]); 
   
   const fetchResources = async (retryCount = 0) => {
     try {
