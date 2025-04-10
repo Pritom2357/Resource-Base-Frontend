@@ -90,15 +90,16 @@ export function WebSocketProvider({children}) {
     }
   }, [isAuthenticated]);
 
-  const fetchNotifications = async ()=>{
+  const fetchNotifications = async (includeRead = false) => {
     if(!isAuthenticated) return;
 
     try {
       setIsLoadingNotifications(true);
       const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 
+      // Add the includeRead parameter to the URL
       const response = await fetch(
-        'https://resource-base-backend-production.up.railway.app/api/notifications', {
+        `https://resource-base-backend-production.up.railway.app/api/notifications?includeRead=${includeRead}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -110,6 +111,7 @@ export function WebSocketProvider({children}) {
       }
 
       const data = await response.json();
+      // console.log("Notifications response:", data); // Add debugging
       setNotifications(data.notifications || []);
       setUnreadCount(data.unreadCount || 0);
     } catch (error) {

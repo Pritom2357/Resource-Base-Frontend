@@ -10,28 +10,45 @@ function NotificationsPage() {
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+    let isMounted = true;
     
-    // Fetch all notifications including read ones
-    fetchNotifications(true);
-  }, [isAuthenticated, navigate, fetchNotifications]);
+    const loadNotifications = async () => {
+      if (!isAuthenticated) {
+        navigate('/login');
+        return;
+      }
+      
+      try {
+        if (isMounted) {
+          await fetchNotifications(true);
+        }
+      } catch (err) {
+        console.error("Error in notification load:", err);
+        if (isMounted) {
+          setError("Failed to load notifications");
+        }
+      }
+    };
+    
+    loadNotifications();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, navigate]); 
 
   const handleNotificationClick = async (notification) => {
     if (!notification.is_read) {
       await markAsRead(notification.id);
     }
     
-    // Navigate to resource
     if (notification.resource_id) {
       navigate(`/resources/${notification.resource_id}`);
     }
   };
 
   if (!isAuthenticated) {
-    return null; // Will redirect in useEffect
+    return null; 
   }
 
   return (

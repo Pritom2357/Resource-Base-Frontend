@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useLoading } from '../context/LoadingContext';
+import { useCache } from '../context/CacheContext';
 
 
 function SearchModal({isOpen, onClose}) {
@@ -13,6 +14,8 @@ function SearchModal({isOpen, onClose}) {
     const searchInputRef = useRef(null);
     const { showLoading } = useLoading();
     const navigate = useNavigate();
+
+    const {isValidCache, getCachedData, setCachedData} = useCache();
 
     useEffect(()=>{
         if(isOpen && searchInputRef.current){
