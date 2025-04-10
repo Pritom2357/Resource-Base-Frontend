@@ -275,7 +275,7 @@ function ResourceDetailPage() {
             clearCache(`resource-${id}`);
             hideLoading();
             
-            fetchNotifications(); 
+            // fetchNotifications(); 
             
             if (typeof clearCache === 'function') {
               clearCache('user-stats-weekly');
