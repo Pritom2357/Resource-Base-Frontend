@@ -18,7 +18,10 @@ export function WebSocketProvider({children}) {
       const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 
       socketInstance = io('https://resource-base-backend-production.up.railway.app', {
-        auth: {token}
+        auth: {token},
+        transports: ['websocket', 'polling'], 
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
       });
 
       socketInstance.on('connect', ()=>{
@@ -26,7 +29,7 @@ export function WebSocketProvider({children}) {
       });
 
       socketInstance.on('connect_error', (error)=>{
-        console.error('Socket connection error: ', error.message);
+        console.error('Socket connection error details:', error.message, error);
       });
 
       socketInstance.on('notification', (notification)=>{
