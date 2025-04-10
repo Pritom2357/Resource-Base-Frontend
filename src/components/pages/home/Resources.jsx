@@ -206,7 +206,7 @@ function Resources() {
             )}
             
             {/* Loading state */}
-            {isLoading && (
+            {isLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map(i => (
                   <div key={i} className="border border-gray-200 rounded-lg bg-white p-5 animate-pulse">
@@ -216,7 +216,21 @@ function Resources() {
                   </div>
                 ))}
               </div>
-            ) }
+            ) : (
+              <div className="space-y-4">
+                {(!isValidCache(key) && resources.length === 0  ) ? (
+                  <div className="text-center py-10 bg-white rounded-lg shadow-sm">
+                    <p className="text-gray-500">No resources found.</p>
+                  </div>
+                ) : (
+                  <div className="grid gap-6 md:grid-cols-2">
+                    {resources.map(resource => (
+                      <ResourceCard key={resource.id} resource={resource} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* Pagination */}
             {!isLoading && resources.length > 0 && totalPages > 1 && (
