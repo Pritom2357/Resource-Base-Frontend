@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthProvider.jsx'
 import Sidebar from '../../layout/Sidebar.jsx';
 import ResourceCard from '../resources/ResourceCard.jsx';
 import { useCache } from '../../context/CacheContext.jsx';
+import { useLoading } from '../../context/LoadingContext.jsx';
 
 function Resources() {
   const { user, logout } = useAuth();
@@ -22,6 +23,7 @@ function Resources() {
   const resourcesPerPage = 6; 
 
     const {isValidCache, getCachedData, setCachedData} = useCache();
+    const {showLoading, hideLoading} = useLoading();
   
   useEffect(() => {
       fetchResources();
@@ -30,6 +32,7 @@ function Resources() {
   const fetchResources = async (retryCount = 0) => {
     try {
       setIsLoading(true);
+      showLoading("Setting the stage ready...")
       
       const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
       if (!token && retryCount < 3) {
@@ -46,7 +49,7 @@ function Resources() {
         setResources(cachedData.resources);
         setTotalPages(cachedData.pagination.totalPages);
         setTotalResources(cachedData.pagination.totalCount);
-        setIsLoading(false);
+        // setIsLoading(false);
         return;
       }
   
@@ -82,6 +85,7 @@ function Resources() {
         setTimeout(() => fetchResources(retryCount + 1), 1500);
       }
     } finally {
+      hideLoading();
       setIsLoading(false);
     }
   };
