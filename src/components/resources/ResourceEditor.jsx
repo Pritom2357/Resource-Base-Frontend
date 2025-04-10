@@ -8,6 +8,8 @@ import { useAuth } from '../context/AuthProvider';
 import { useLoading } from '../context/LoadingContext';
 import TipTapEditor from '../layout/TipTapEditor';
 import { useCache } from '../context/CacheContext';
+import ResourceSharingGuidelines from '../layout/ResourceSharingGuidelines'
+
 
 function ResourceEditor({initialData = null, isEdit = false, resourceId = null}) {
     // console.log("Resource Editor mounting");
@@ -174,6 +176,8 @@ function ResourceEditor({initialData = null, isEdit = false, resourceId = null})
             <h1 className="text-2xl font-bold text-gray-900 mb-6">
                 {initialData ? 'Edit Resource' : 'Create New Resource'}
             </h1>
+            
+            <ResourceSharingGuidelines />
             
             {error && (
                 <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 text-red-700">
