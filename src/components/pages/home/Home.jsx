@@ -79,7 +79,7 @@ function Home() {
       const data = await response.json();
       
 
-      setCachedData('user-stats-weekly', data, 10 * 60 * 1000);
+      setCachedData('user-stats-weekly', data, 30 * 1000);
 
       setUserStats({
         sharedCount: data.shared_resources_count || 0,
