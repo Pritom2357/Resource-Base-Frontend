@@ -216,21 +216,13 @@ function Resources() {
                   </div>
                 ))}
               </div>
-            ) : (
-              <div className="space-y-4">
-                {resources.length === 0 && !isLoading && !error ? (
-                  <div className="text-center py-10 bg-white rounded-lg shadow-sm">
-                    <p className="text-gray-500">No resources found.</p>
-                  </div>
-                ) : (
-                  <div className="grid gap-6 md:grid-cols-2">
-                    {resources.map(resource => (
-                      <ResourceCard key={resource.id} resource={resource} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            ) :  (
+                <div className="grid gap-6 md:grid-cols-2">
+                  {resources.map(resource => (
+                    <ResourceCard key={resource.id} resource={resource} />
+                  ))}
+                </div>
+              )}
             
             {/* Pagination */}
             {!isLoading && resources.length > 0 && totalPages > 1 && (
