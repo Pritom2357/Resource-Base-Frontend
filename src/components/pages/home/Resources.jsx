@@ -185,7 +185,7 @@ function Resources() {
                       onClick={() => fetchResources()} 
                       className="mt-2 text-sm font-medium text-red-700 hover:text-red-600"
                     >
-                      Try Again
+                      May need a refresh
                     </button>
                   </div>
                 </div>
