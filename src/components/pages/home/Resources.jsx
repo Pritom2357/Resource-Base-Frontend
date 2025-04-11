@@ -170,7 +170,7 @@ function Resources() {
                   to="/create-resource" 
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
                 >
-                  Add Resource
+                  Add...
                 </Link>
               </div>
             </div>
